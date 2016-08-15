@@ -1,11 +1,11 @@
 <?php
-require('config.php');
+require('config/config.php');
 
 // Composer Autoloader
 require(DIR_VENDOR.'/autoload.php');
 
 // Kernel
-require('Autoloader.php');
+require('Kernel/Autoloader.php');
 
 // Instantiate the loader
 \Hex\Kernel\Autoloader::init();

@@ -2,7 +2,7 @@
 include "memory_test.php";
 // =======================
 
-include "Kernel/init.php";
+include "init.php";
 
 $params = array(
 	"multilang" => true // Мультиязычный сайт
@@ -11,11 +11,7 @@ $params = array(
 \Hex\Kernel\Application::init($params);
 
 
-
-
-
-
-
+$ex = new \Exception\FileNotFoundException();
 
 
 

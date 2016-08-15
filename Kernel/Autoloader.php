@@ -69,7 +69,8 @@ class Autoloader
 			// Register the base directories for the namespace prefix
             
             // Base CMS packages
-			$this->addNamespace('Hex', ROOT.'');
+			$this->addNamespace('Hex', ROOT);
+			$this->addNamespace('Exception', DIR_KERNEL.'/Exceptions');
 		}
     }
 
@@ -158,6 +159,9 @@ class Autoloader
             $prefix = rtrim($prefix, '\\');
         }
 
+        if(!isset($relative_class))
+            return false;
+
 		$file = ROOT
 				. '/'
                 . $prefix
@@ -219,10 +223,10 @@ class Autoloader
      */
     protected function requireFile($file)
     {
-        //if (file_exists($file)) {
+        if (file_exists($file)) {
             require $file;
             return true;
-       // }
+        }
         return false;
     }
 }
