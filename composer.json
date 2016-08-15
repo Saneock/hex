@@ -1,0 +1,12 @@
+{
+    "authors": [
+        {
+            "name": "Alexander Topalo",
+            "email": "saneock19@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0",
+        "beberlei/assert": "^2.6"
+	}
+}
