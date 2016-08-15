@@ -1,1 +1,1 @@
-# hex
+<h1>Hex CMS</h1>
