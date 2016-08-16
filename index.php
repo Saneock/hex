@@ -11,10 +11,6 @@ $params = array(
 \Hex\Kernel\Application::init($params);
 
 
-$ex = new \Exception\FileNotFoundException();
-
-
-
 // ======================= Test
 
 exit();

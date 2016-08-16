@@ -1,12 +1,14 @@
 {
+    "name": "hex/framework",
+    "type": "project",
+    "require": {
+        "beberlei/assert": "^2.6"
+    },
     "authors": [
         {
             "name": "Alexander Topalo",
             "email": "saneock19@gmail.com"
         }
     ],
-    "require": {
-        "php": ">=7.0.0",
-        "beberlei/assert": "^2.6"
-	}
+    "minimum-stability": "dev"
 }
