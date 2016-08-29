@@ -1,9 +1,9 @@
 <?php
-namespace Hex\Kernel;
+namespace Hex\Base;
 
 /**
  * Class Settings
- * @package Kernel
+ * @package Base
  */
 class Settings
 {

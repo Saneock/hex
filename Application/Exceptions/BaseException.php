@@ -4,7 +4,7 @@ namespace Exception;
 /**
  * Class BaseException
  */
-abstract class BaseException extends \Exception implements IException
+abstract class BaseException extends \Exception implements \Interfaces\IException
 {
     protected $message = 'Unknown exception';     // Exception message
     private   $string;                            // Unknown
@@ -18,12 +18,12 @@ abstract class BaseException extends \Exception implements IException
      * @param null $message
      * @param int $code
      */
-    public function __construct($message = null, $code = 0)
+    public function __construct($message = null, $code = 0, $previous = null)
     {
         if (!$message) {
             throw new $this('Unknown '. get_class($this));
         }
-        parent::__construct($message, $code);
+        parent::__construct($message, $code, $previous);
     }
 
     /**
@@ -41,7 +41,8 @@ abstract class BaseException extends \Exception implements IException
      */
     protected function createMessage() : string
     {
-        return get_class($this) . ': ' . self::bold($this->message) . ' ' . ' in ' . self::bold($this->file) . ' on line ' . self::bold($this->line) . "\n";;
+        return get_class($this) . ': ' . self::bold($this->message) . ' ' .
+        ' in ' . self::bold($this->file) . ' on line ' . self::bold($this->line) . "\n";
     }
 
     /**

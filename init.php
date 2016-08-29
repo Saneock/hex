@@ -1,11 +1,12 @@
 <?php
 require('config/config.php');
+require('config/database.php');
 
 // Composer Autoloader
 require(DIR_VENDOR.'/autoload.php');
 
-// Kernel
-require('Kernel/Autoloader.php');
+// Base
+require(DIR_BASE.'/Autoloader.php');
 
 // Instantiate the loader
-\Hex\Kernel\Autoloader::init();
+\Hex\Base\Autoloader::init();

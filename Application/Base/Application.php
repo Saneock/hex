@@ -1,11 +1,11 @@
 <?php
-namespace Hex\Kernel;
+namespace Hex\Base;
 
 /**
  * Основной класс служащий инициатором для отображения сайта 
  *
  * Class Application
- * @package Kernel
+ * @package Base
  */
 class Application
 {
@@ -15,9 +15,32 @@ class Application
      * @var array
      */
     public static $params;
-    
+
     /**
-     * Инициация сайта
+     * Главный роутер сайта
+     *
+     * @var array
+     */
+    public static $router;
+
+    /**
+     * Данные текущего раздела
+     *
+     * @var array
+     */
+    public static $section;
+
+    /**
+     * Массив с данными выбранного языка
+     *
+     * @var array
+     */
+    public static $language;
+    
+
+
+    /**
+     * Инициализация сайта
      *
      * @param array $siteParams Глобальные параметры сайта
      * @return void
@@ -27,7 +50,16 @@ class Application
     public static function init(array $siteParams)
     {
         // Установка глобальных параметров сайта
-        $params = self::setSiteParams($siteParams);
+        self::$params = self::setSiteParams($siteParams);
+
+        // Определение раздела и подготовка данных ссылки
+        self::$router = \Hex\Base\Router::getInstance();
+
+        // Подключение к базе данных
+        $db = \Hex\Base\Database::getInstance();
+        
+        // Определение языка
+        //self::$params = \Hex\Base\Language::getCurrentLanguage();
     }
 
     /**

@@ -1,5 +1,5 @@
 <?php
-namespace Hex\Kernel;
+namespace Hex\Base;
 
 /**
  * An example of a general-purpose implementation that includes the optional
@@ -24,7 +24,7 @@ namespace Hex\Kernel;
  *
  *      <?php
  *      // instantiate the loader
- *      $loader = new \Kernel\Autoloader;
+ *      $loader = new \Base\Autoloader;
  *
  *      // register the autoloader
  *      $loader->register();
@@ -62,15 +62,17 @@ class Autoloader
      */
     public function __construct($register = true)
     {
-		if($register){
+		if ($register) {
 			// Register the autoloader
 			$this->register();
 
 			// Register the base directories for the namespace prefix
             
             // Base CMS packages
-			$this->addNamespace('Hex', ROOT);
-			$this->addNamespace('Exception', DIR_KERNEL.'/Exceptions');
+			$this->addNamespace('Hex', DIR_APP);
+			$this->addNamespace('Exception', DIR_APP.'/Exceptions');
+			$this->addNamespace('Interfaces', DIR_APP.'/Interfaces');
+			$this->addNamespace('Abstracts', DIR_APP.'/Abstracts');
 		}
     }
 
@@ -81,7 +83,7 @@ class Autoloader
      */
     public static function init($register = true)
     {
-		$loader = new \Hex\Kernel\Autoloader($register);
+		$loader = new \Hex\Base\Autoloader($register);
     }
 
     /**
