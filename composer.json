@@ -2,7 +2,10 @@
     "name": "hex/framework",
     "type": "project",
     "require": {
-        "beberlei/assert": "^2.6"
+        "beberlei/assert": "^2.6",
+        "doctrine/cache": "^1.6",
+        "bramus/router": "^1.1",
+        "twig/twig": "~1.0"
     },
     "authors": [
         {

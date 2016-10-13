@@ -7,18 +7,16 @@ namespace Hex\Base;
  * Class Database
  * @package Base
  */
-class Database extends \Abstracts\Singleton
+class DatabaseCore extends \Abstracts\Singleton
 {
     protected static $instance;
 
     protected static $db;
-    protected static $cache;
 	public static $queries = 0;
 
 	protected function __construct()
     {
 		self::$db = $this->databaseConnect();
-		self::$cache = $this->memcachedConnect();
     }
 
 	/**
@@ -48,19 +46,6 @@ class Database extends \Abstracts\Singleton
 		}
 
 		return $db;
-	}
-
-	/**
-     * Подключение серверу кэширования
-     *
-     * @return Memcached
-     */
-	protected function memcachedConnect()
-	{	
-		$cache = new \Memcache();
-		$cache->pconnect('127.0.0.1', 11211) or die ("Could not connect");
-		
-		return $cache;
 	}
 
 

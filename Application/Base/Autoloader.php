@@ -48,6 +48,13 @@ namespace Hex\Base;
 class Autoloader
 {
     /**
+     * @var Autoloader
+     */
+    protected static $instance;
+
+    public $_use_overrides = true;
+
+    /**
      * An associative array where the key is a namespace prefix and the value
      * is an array of base directories for classes in that namespace.
      *
@@ -55,35 +62,69 @@ class Autoloader
      */
     protected $prefixes = array();
 
+    /**
+     * File where classes index is stored
+     */
+    const INDEX_FILE = 'cache/class_index.php';
+
+    /**
+     * @var string Root directory
+     */
+    protected $root_dir;
+
+    /**
+     *  @var array array('classname' => 'path/to/override', 'classnamecore' => 'path/to/class/core')
+     */
+    public $index = array();
+
+    public $_include_override_path = true;
+
+    protected static $class_aliases = array();
+
 	/**
      * Register loader with base directories for the namespace prefix
      *
      * @return void
      */
-    public function __construct($register = true)
+    protected function __construct($register = true)
     {
-		if ($register) {
-			// Register the autoloader
-			$this->register();
+        if ($this->_use_overrides) {
+            // Set root directory
+            $this->root_dir = ROOT.'/';
 
-			// Register the base directories for the namespace prefix
-            
-            // Base CMS packages
-			$this->addNamespace('Hex', DIR_APP);
-			$this->addNamespace('Exception', DIR_APP.'/Exceptions');
-			$this->addNamespace('Interfaces', DIR_APP.'/Interfaces');
-			$this->addNamespace('Abstracts', DIR_APP.'/Abstracts');
-		}
+            // Check index file
+            $file = $this->normalizeDirectory(ROOT).self::INDEX_FILE;
+            if (is_readable($file) and filemtime($file)) {
+                $this->index = include($file);
+            } else {
+                $this->generateIndex();
+            }
+        }
+
+        // Register the autoloader
+		$this->register();
+
+		// Register the base directories for the namespace prefix
+
+        // Base CMS packages
+		$this->addNamespace('Hex', DIR_APP);
+		$this->addNamespace('Exception', DIR_APP.'/Exceptions');
+		$this->addNamespace('Interfaces', DIR_APP.'/Interfaces');
+		$this->addNamespace('Abstracts', DIR_APP.'/Abstracts');
     }
 
-	/**
-     * Static register loader with base directories for the namespace prefix
+    /**
+     * Get instance of Autoloader (singleton)
      *
      * @return Autoloader
      */
-    public static function init($register = true)
+    public static function getInstance()
     {
-		$loader = new \Hex\Base\Autoloader($register);
+        if (null === static::$instance) {
+            static::$instance = new static();
+        }
+
+        return static::$instance;
     }
 
     /**
@@ -135,49 +176,107 @@ class Autoloader
      * @return mixed The mapped file name on success, or boolean false on
      * failure.
      */
-    public function loadClass($class)
+    public function loadClass($classname)
     {
-        // the current namespace prefix
-        $prefix = $class;
+        if ($this->_use_overrides == false) {
+            // the current namespace prefix
+            $prefix = $classname;
 
-        // work backwards through the namespace names of the fully-qualified
-        // class name to find a mapped file name
-        while (false !== $pos = strrpos($prefix, '\\')) {
+            // work backwards through the namespace names of the fully-qualified
+            // class name to find a mapped file name
+            while (false !== $pos = strrpos($prefix, '\\')) {
 
-            // retain the trailing namespace separator in the prefix
-            $prefix = substr($class, 0, $pos + 1);
+                // retain the trailing namespace separator in the prefix
+                $prefix = substr($classname, 0, $pos + 1);
 
-            // the rest is the relative class name
-            $relative_class = substr($class, $pos + 1);
+                // the rest is the relative class name
+                $relative_class = substr($classname, $pos + 1);
 
-            // try to load a mapped file for the prefix and relative class
-            $mapped_file = $this->loadMappedFile($prefix, $relative_class);
-            if ($mapped_file) {
-                return $mapped_file;
+                // try to load a mapped file for the prefix and relative class
+                $mapped_file = $this->loadMappedFile($prefix, $relative_class);
+                if ($mapped_file) {
+                    return $mapped_file;
+                }
+
+                // remove the trailing namespace separator for the next iteration
+                // of strrpos()
+                $prefix = rtrim($prefix, '\\');
             }
 
-            // remove the trailing namespace separator for the next iteration
-            // of strrpos()
-            $prefix = rtrim($prefix, '\\');
+            if(!isset($relative_class))
+                return false;
+
+            $file = ROOT
+                . '/'
+                . $prefix
+                . '/'
+                . str_replace('\\', '/', $relative_class)
+                . '.php';
+
+            // if the mapped file exists, require it
+            if ($this->requireFile($file)) {
+                // yes, we're done
+                return $file;
+            }
+
+            // didn't found mapped file
+            return false;
+        }
+        
+        
+        // If use overrides
+
+        // Retrocompatibility
+        if (isset(self::$class_aliases[$classname]) && !interface_exists($classname, false) && !class_exists($classname, false)) {
+            return eval('class '.$classname.' extends '.self::$class_aliases[$classname].' {}');
         }
 
-        if(!isset($relative_class))
-            return false;
+        // Regenerate the class index if the requested file doesn't exists
+        if ((isset($this->index[$classname]) && $this->index[$classname]['path'] && !is_file($this->root_dir.$this->index[$classname]['path']))
+            || (isset($this->index[$classname.'Core']) && $this->index[$classname.'Core']['path'] && !is_file($this->root_dir.$this->index[$classname.'Core']['path']))) {
+            $this->generateIndex();
+        }
 
-		$file = ROOT
-				. '/'
-                . $prefix
-				. '/'
-				. str_replace('\\', '/', $relative_class)
-				. '.php';
+        // If $classname has not core suffix (E.g. Shop, Product)
+        if (substr($classname, -4) != 'Core') {
+            $class_dir = (isset($this->index[$classname]['override'])
+                && $this->index[$classname]['override'] === true) ? $this->normalizeDirectory(ROOT) : $this->root_dir;
 
-		// if the mapped file exists, require it
-		if ($this->requireFile($file)) {
-			// yes, we're done
-			return $file;
-		}
+            // If requested class does not exist, load associated core class
+            if (isset($this->index[$classname]) && !$this->index[$classname]['path']) {
+                $file = $class_dir.$this->index[$classname.'Core']['path'];
+                require_once($file);
 
-        // never found a mapped file
+                if ($this->index[$classname.'Core']['type'] != 'interface') {
+                    eval('namespace '.$this->index[$classname]['namespace'].'; '.$this->index[$classname.'Core']['type'].' '.$this->index[$classname]['class'].' extends \\'.$classname.'Core {}');
+                }
+                
+                return $file;
+            } else {
+                // request a non Core Class load the associated Core class if exists
+                if (isset($this->index[$classname.'Core'])) {
+                    $file = $this->root_dir.$this->index[$classname.'Core']['path'];
+                    require_once($file);
+                }
+
+                if (isset($this->index[$classname])) {
+                    $file = $class_dir.$this->index[$classname]['path'];
+                    if ($this->requireFile($file)) {
+                        return $file;
+                    }
+                }
+
+                return $file;
+            }
+        }
+        // Call directly ProductCore, ShopCore class
+        elseif (isset($this->index[$classname]['path']) && $this->index[$classname]['path']) {
+            $file = $this->root_dir.$this->index[$classname]['path'];
+            if ($this->requireFile($file)) {
+                 return $file;
+            }
+        }
+        
         return false;
     }
 
@@ -218,6 +317,100 @@ class Autoloader
     }
 
     /**
+     * Generate classes index
+     */
+    public function generateIndex()
+    {
+        $classes = array_merge(
+            $this->getClassesFromDir('Application/')
+        );
+
+        if ($this->_include_override_path) {
+            $classes = array_merge(
+                $classes,
+                $this->getClassesFromDir('overrides/Application/', true)
+            );
+        }
+
+        ksort($classes);
+        $content = '<?php return '.var_export($classes, true).'; ?>';
+
+        // Write classes index on disc to cache it
+        $filename = $this->normalizeDirectory(ROOT).self::INDEX_FILE;
+        $filename_tmp = tempnam(dirname($filename), basename($filename.'.'));
+
+        if ($filename_tmp !== false && file_put_contents($filename_tmp, $content) !== false) {
+            if(file_exists($filename_tmp)){
+                if (!rename($filename_tmp, $filename)) {
+                    unlink($filename_tmp);
+                } else {
+                    chmod($filename, 0666);
+                }
+            }
+        }
+        // $filename_tmp couldn't be written. $filename should be there anyway (even if outdated), no need to die.
+        else {
+            Logger::logError('Cannot write temporary file '.$filename_tmp);
+        }
+        $this->index = $classes;
+    }
+
+    /**
+     * Retrieve recursively all classes in a directory and its subdirectories
+     *
+     * @param string $path Relativ path from root to the directory
+     * @return array
+     */
+    protected function getClassesFromDir($path, $host_mode = false)
+    {
+        $classes = array();
+        $root_dir = $host_mode ? $this->normalizeDirectory(ROOT) : $this->root_dir;
+
+        foreach (scandir($root_dir.$path) as $file) {
+            if ($file[0] != '.') {
+                if (is_dir($root_dir.$path.$file)) {
+                    $classes = array_merge($classes, $this->getClassesFromDir($path.$file.'/', $host_mode));
+                } elseif (substr($file, -4) == '.php') {
+                    $content = file_get_contents($root_dir.$path.$file);
+
+                    $namespacePattern = '[\\a-z0-9_]*[\\]';
+                    $pattern = '#\W((abstract\s+)?class|interface)\s+(?P<classname>'.basename($file, '.php').'(?:Core)?)'
+                                .'(?:\s+extends\s+'.$namespacePattern.'[a-z][a-z0-9_]*)?(?:\s+implements\s+'.$namespacePattern.'[a-z][\\a-z0-9_]*(?:\s*,\s*'.$namespacePattern.'[a-z][\\a-z0-9_]*)*)?\s*\{#i';
+
+                    if (preg_match($pattern, $content, $m)) {
+                        // Get namespace if set global
+                        if (preg_match('/namespace ([\\a-z0-9_]+?);/i', $content, $nm)) {
+                            $namespace = $nm[1];
+                        } else {
+                            $namespace = '';
+                        }
+
+                        $classes[$namespace.'\\'.$m['classname']] = array(
+                            'class' => $m['classname'],
+                            'namespace' => $namespace,
+                            'path' => $path.$file,
+                            'type' => trim($m[1]),
+                            'override' => $host_mode
+                        );
+
+                        if (substr($m['classname'], -4) == 'Core') {
+                            $classes[$namespace.'\\'.substr($m['classname'], 0, -4)] = array(
+                                'class' => substr($m['classname'], 0, -4),
+                                'namespace' => $namespace,
+                                'path' => '',
+                                'type' => $classes[$namespace.'\\'.$m['classname']]['type'],
+                                'override' => $host_mode
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        return $classes;
+    }
+
+    /**
      * If a file exists, require it from the file system.
      *
      * @param string $file The file to require.
@@ -230,5 +423,42 @@ class Autoloader
             return true;
         }
         return false;
+    }
+
+    /**
+     * Get class path from index file
+     *
+     * @param string $classname Class name
+     */
+    public function getClassPath($classname)
+    {
+        return (isset($this->index[$classname]) && isset($this->index[$classname]['path'])) ? $this->index[$classname]['path'] : null;
+    }
+
+    private function normalizeDirectory($directory)
+    {
+        return rtrim($directory, '/\\').DIRECTORY_SEPARATOR;
+    }
+
+
+
+    /**
+     * Private clone method to prevent cloning of the instance of the
+     * *Singleton* instance.
+     *
+     * @return void
+     */
+    private function __clone()
+    {
+    }
+
+    /**
+     * Private unserialize method to prevent unserializing of the *Singleton*
+     * instance.
+     *
+     * @return void
+     */
+    private function __wakeup()
+    {
     }
 }

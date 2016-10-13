@@ -1,4 +1,5 @@
 <?php
+require('config/environment.php');
 require('config/config.php');
 require('config/database.php');
 
@@ -9,4 +10,4 @@ require(DIR_VENDOR.'/autoload.php');
 require(DIR_BASE.'/Autoloader.php');
 
 // Instantiate the loader
-\Hex\Base\Autoloader::init();
+\Hex\Base\Autoloader::getInstance();

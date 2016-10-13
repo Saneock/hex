@@ -2,13 +2,16 @@
 include "memory_test.php";
 // =======================
 
+use Hex\Base\Application as Hex;
+
+$m = mem();
 include "init.php";
 
 $params = array(
 	"multilang" => true // Мультиязычный сайт
 );
 
-\Hex\Base\Application::init($params);
+Hex::init($params);
 
 
 

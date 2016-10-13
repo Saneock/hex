@@ -10,7 +10,35 @@ class ComposerStaticInit655b006907dd84e189987416ba001529
         'a4ecaeafb8cfb009ad0e052c90355e98' => __DIR__ . '/..' . '/beberlei/assert/lib/Assert/functions.php',
     );
 
+    public static $prefixLengthsPsr4 = array (
+        'D' => 
+        array (
+            'Doctrine\\Common\\Cache\\' => 22,
+        ),
+    );
+
+    public static $prefixDirsPsr4 = array (
+        'Doctrine\\Common\\Cache\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/doctrine/cache/lib/Doctrine/Common/Cache',
+        ),
+    );
+
     public static $prefixesPsr0 = array (
+        'T' => 
+        array (
+            'Twig_' => 
+            array (
+                0 => __DIR__ . '/..' . '/twig/twig/lib',
+            ),
+        ),
+        'B' => 
+        array (
+            'Bramus' => 
+            array (
+                0 => __DIR__ . '/..' . '/bramus/router/src',
+            ),
+        ),
         'A' => 
         array (
             'Assert' => 
@@ -23,6 +51,8 @@ class ComposerStaticInit655b006907dd84e189987416ba001529
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
+            $loader->prefixLengthsPsr4 = ComposerStaticInit655b006907dd84e189987416ba001529::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit655b006907dd84e189987416ba001529::$prefixDirsPsr4;
             $loader->prefixesPsr0 = ComposerStaticInit655b006907dd84e189987416ba001529::$prefixesPsr0;
 
         }, null, ClassLoader::class);
