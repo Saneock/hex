@@ -94,7 +94,7 @@ class Autoloader
 
             // Check index file
             $file = $this->normalizeDirectory(ROOT).self::INDEX_FILE;
-            if (is_readable($file) and filemtime($file)) {
+            if (is_readable($file) and filemtime($file) and ENVIRONMENT !== 'development') {
                 $this->index = include($file);
             } else {
                 $this->generateIndex();
@@ -111,6 +111,7 @@ class Autoloader
 		$this->addNamespace('Exception', DIR_APP.'/Exceptions');
 		$this->addNamespace('Interfaces', DIR_APP.'/Interfaces');
 		$this->addNamespace('Abstracts', DIR_APP.'/Abstracts');
+		$this->addNamespace('web', DIR_SECTIONS);
     }
 
     /**
@@ -266,7 +267,10 @@ class Autoloader
                     }
                 }
 
-                return $file;
+                if (isset($file))
+                    return $file;
+                else 
+                    return false;
             }
         }
         // Call directly ProductCore, ShopCore class
@@ -322,7 +326,8 @@ class Autoloader
     public function generateIndex()
     {
         $classes = array_merge(
-            $this->getClassesFromDir('Application/')
+            $this->getClassesFromDir('Application/'),
+            $this->getClassesFromDir('sections/')
         );
 
         if ($this->_include_override_path) {

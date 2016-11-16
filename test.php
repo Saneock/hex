@@ -1,76 +1,97 @@
 <?php
-class PropertyTest
+
+/**
+ * Component - компонент
+ * объявляет интерфейс для компонуемых объектов;
+ * предоставляет подходящую реализацию операций по умолчанию,
+ * общую для всех классов;
+ * объявляет интерфейс для доступа к потомкам и управлению ими;
+ * определяет интерфейс доступа к родителю компонента в рекурсивной структуре
+ * и при необходимости реализует его. Описанная возможность необязательна;
+ */
+abstract class Component
 {
-    /**  Location for overloaded data.  */
-    private $data = array();
+	protected $name;
 
-    /**  Overloading not used on declared properties.  */
-    public $declared = 1;
+	// Constructor
+	public function __construct($name)
+	{
+		$this->name = $name;
+	}
 
-    /**  Overloading only used on this when accessed outside the class.  */
-    private $hidden = 2;
-
-    public function __set($name, $value)
-    {
-        echo "Setting '$name' to '$value'\n";
-        $this->data[$name] = $value;
-    }
-
-    public function __get($name)
-    {
-        echo "Getting '$name'\n";
-        if (array_key_exists($name, $this->data)) {
-            return $this->data[$name];
-        }
-
-        $trace = debug_backtrace();
-        trigger_error(
-            'Undefined property via __get(): ' . $name .
-            ' in ' . $trace[0]['file'] .
-            ' on line ' . $trace[0]['line'],
-            E_USER_NOTICE);
-        return null;
-    }
-
-    /**  As of PHP 5.1.0  */
-    public function __isset($name)
-    {
-        echo "Is '$name' set?\n";
-        return isset($this->data[$name]);
-    }
-
-    /**  As of PHP 5.1.0  */
-    public function __unset($name)
-    {
-        echo "Unsetting '$name'\n";
-        unset($this->data[$name]);
-    }
-
-    /**  Not a magic method, just here for example.  */
-    public function getHidden()
-    {
-        return $this->hidden;
-    }
+	public abstract function add(Component $c);
+	public abstract function remove(Component $c);
+	public abstract function display();
 }
 
+/**
+ * Composite - составной объект
+ * определяет поведение компонентов, у которых есть потомки;
+ * хранит компоненты-потомки;
+ * реализует относящиеся к управлению потомками операции и интерфейс
+ */
+class Composite extends Component
+{
+	private $children = array();
 
-echo "<pre>\n";
+	public function add(Component $component)
+	{
+		$this->children[$component->name] = $component;
+	}
 
-$obj = new PropertyTest;
+	public function remove(Component $component)
+	{
+		unset($this->children[$component->name]);
+	}
 
-$obj->a = 1;
-echo $obj->a . "\n\n";
+	public function display()
+	{
+		foreach($this->children as $child)
+            $child->display();
+	}
+}
 
-var_dump(isset($obj->a));
-unset($obj->a);
-var_dump(isset($obj->a));
-echo "\n";
+/**
+ * Leaf - лист
+ * представляет листовой узел композиции и не имеет потомков;
+ * определяет поведение примитивных объектов в композиции;
+ */
+class Leaf extends Component
+{
 
-echo $obj->declared . "\n\n";
+	public function add(Component $c)
+	{
+		print ("Cannot add to a leaf");
+	}
 
-echo "Let's experiment with the private property named 'hidden':\n";
-echo "Privates are visible inside the class, so __get() not used...\n";
-echo $obj->getHidden() . "\n";
-echo "Privates not visible outside of class, so __get() is used...\n";
-echo $obj->hidden . "\n";
-?>
+	public function remove(Component $c)
+	{
+		print("Cannot remove from a leaf");
+	}
+
+	public function display()
+	{
+		print_r($this->name); echo "<br>";
+	}
+}
+
+// Create a tree structure
+$root = new Composite("root");
+
+$root->add(new Leaf("Leaf A"));
+$root->add(new Leaf("Leaf B"));
+
+$comp = new Composite("Composite X");
+
+$comp->add(new Leaf("Leaf XA"));
+$comp->add(new Leaf("Leaf XB"));
+$root->add($comp);
+$root->add(new Leaf("Leaf C"));
+
+// Add and remove a leaf
+$leaf = new Leaf("Leaf D");
+$root->add($leaf);
+$root->remove($leaf);
+
+// Recursively display tree
+$root->display();

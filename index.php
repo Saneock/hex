@@ -2,17 +2,9 @@
 include "memory_test.php";
 // =======================
 
-use Hex\Base\Application as Hex;
-
-$m = mem();
 include "init.php";
 
-$params = array(
-	"multilang" => true // Мультиязычный сайт
-);
-
-Hex::init($params);
-
+\Hex\Base\Application::init();
 
 
 // ======================= Test
@@ -25,7 +17,7 @@ bindtextdomain("ru_RU", "locale");
 
 textdomain("ru_RU");
 
-function _l($text, $context = false)
+function __($text, $context = false)
 {
 	if($context)
 		$contextString = "{$context}\004{$text}";

@@ -22,6 +22,8 @@ use ReflectionClass;
  * @author Benjamin Eberlei <kontakt@beberlei.de>
  *
  * @method AssertionChain alnum($message = null, $propertyPath = null) Assert that value is alphanumeric.
+ * @method AssertionChain between($lowerLimit, $upperLimit, $message = null, $propertyPath = null) Assert that a value is greater or equal than a lower limit, and less than or equal to an upper limit.
+ * @method AssertionChain betweenExclusive($lowerLimit, $upperLimit, $message = null, $propertyPath = null) Assert that a value is greater than a lower limit, and less than an upper limit.
  * @method AssertionChain betweenLength($minLength, $maxLength, $message = null, $propertyPath = null, $encoding = "utf8") Assert that string length is between min,max lengths.
  * @method AssertionChain boolean($message = null, $propertyPath = null) Assert that value is php boolean.
  * @method AssertionChain choice($choices, $message = null, $propertyPath = null) Assert that value is in array of choices.
@@ -32,6 +34,7 @@ use ReflectionClass;
  * @method AssertionChain date($format, $message = null, $propertyPath = null) Assert that date is valid and corresponds to the given format.
  * @method AssertionChain digit($message = null, $propertyPath = null) Validates if an integer or integerish is a digit.
  * @method AssertionChain directory($message = null, $propertyPath = null) Assert that a directory exists.
+ * @method AssertionChain e164($message = null, $propertyPath = null) Assert that the given string is a valid E164 Phone Number.
  * @method AssertionChain email($message = null, $propertyPath = null) Assert that value is an email adress (using input_filter/FILTER_VALIDATE_EMAIL).
  * @method AssertionChain endsWith($needle, $message = null, $propertyPath = null, $encoding = "utf8") Assert that string ends with a sequence of chars.
  * @method AssertionChain eq($value2, $message = null, $propertyPath = null) Assert that two values are equal (using == ).
@@ -44,6 +47,10 @@ use ReflectionClass;
  * @method AssertionChain inArray($choices, $message = null, $propertyPath = null) Alias of {@see choice()}.
  * @method AssertionChain integer($message = null, $propertyPath = null) Assert that value is a php integer.
  * @method AssertionChain integerish($message = null, $propertyPath = null) Assert that value is a php integer'ish.
+ * @method AssertionChain interfaceExists($message = null, $propertyPath = null) Assert that the interface exists.
+ * @method AssertionChain ip($flag = null, $message = null, $propertyPath = null) Assert that value is an IPv4 or IPv6 address.
+ * @method AssertionChain ipv4($flag = null, $message = null, $propertyPath = null) Assert that value is an IPv4 address.
+ * @method AssertionChain ipv6($flag = null, $message = null, $propertyPath = null) Assert that value is an IPv6 address.
  * @method AssertionChain isArray($message = null, $propertyPath = null) Assert that value is an array.
  * @method AssertionChain isArrayAccessible($message = null, $propertyPath = null) Assert that value is an array or an array-accessible object.
  * @method AssertionChain isCallable($message = null, $propertyPath = null) Determines that the provided value is callable.
@@ -53,6 +60,7 @@ use ReflectionClass;
  * @method AssertionChain isTraversable($message = null, $propertyPath = null) Assert that value is an array or a traversable object.
  * @method AssertionChain keyExists($key, $message = null, $propertyPath = null) Assert that key exists in an array.
  * @method AssertionChain keyIsset($key, $message = null, $propertyPath = null) Assert that key exists in an array/array-accessible object using isset().
+ * @method AssertionChain keyNotExists($key, $message = null, $propertyPath = null) Assert that key does not exist in an array.
  * @method AssertionChain length($length, $message = null, $propertyPath = null, $encoding = "utf8") Assert that string has a given length.
  * @method AssertionChain lessOrEqualThan($limit, $message = null, $propertyPath = null) Determines if the value is less or than given limit.
  * @method AssertionChain lessThan($limit, $message = null, $propertyPath = null) Determines if the value is less than given limit.
@@ -70,11 +78,13 @@ use ReflectionClass;
  * @method AssertionChain notIsInstanceOf($className, $message = null, $propertyPath = null) Assert that value is not instance of given class-name.
  * @method AssertionChain notNull($message = null, $propertyPath = null) Assert that value is not null.
  * @method AssertionChain notSame($value2, $message = null, $propertyPath = null) Assert that two values are not the same (using === ).
+ * @method AssertionChain null($message = null, $propertyPath = null) Assert that value is null.
  * @method AssertionChain numeric($message = null, $propertyPath = null) Assert that value is numeric.
  * @method AssertionChain range($minValue, $maxValue, $message = null, $propertyPath = null) Assert that value is in range of numbers.
  * @method AssertionChain readable($message = null, $propertyPath = null) Assert that the value is something readable.
  * @method AssertionChain regex($pattern, $message = null, $propertyPath = null) Assert that value matches a regex.
  * @method AssertionChain same($value2, $message = null, $propertyPath = null) Assert that two values are the same (using ===).
+ * @method AssertionChain satisfy($callback, $message = null, $propertyPath = null) Assert that the provided value is valid according to a callback.
  * @method AssertionChain scalar($message = null, $propertyPath = null) Assert that value is a PHP scalar.
  * @method AssertionChain startsWith($needle, $message = null, $propertyPath = null, $encoding = "utf8") Assert that string starts with a sequence of chars.
  * @method AssertionChain string($message = null, $propertyPath = null) Assert that value is a string.

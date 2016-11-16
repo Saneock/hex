@@ -1,14 +1,10 @@
 <?php
 namespace Hex\Base;
 
-use Hex\Base\Router;
-use Hex\Base\Cache;
-use Hex\Base\Database;
-
 /**
  * Основной класс служащий инициатором для отображения сайта 
  *
- * Class Application
+ * Class ApplicationCore
  * @package Base
  */
 class ApplicationCore
@@ -19,6 +15,13 @@ class ApplicationCore
      * @var array
      */
     protected static $params;
+
+    /**
+     * Кодировка
+     *
+     * @var string
+     */
+    public static $charset = ENCODING;
 
     /**
      * Главный роутер сайта
@@ -54,6 +57,38 @@ class ApplicationCore
      * @var Cache
      */
     public static $cache;
+
+    /**
+     * Объект шаблонизатора
+     *
+     * @var bool|object
+     */
+    public static $view;
+
+    /**
+     * @var Controller
+     */
+    public static $requestedController;
+
+    /**
+     * @var Action
+     */
+    public static $requestedAction;
+
+    /**
+     * @var array
+     */
+    public static $requestedParams;
+
+    /**
+     * @var Request
+     */
+    public static $request;
+
+    /**
+     * @var Response
+     */
+    public static $response;
     
 
 
@@ -62,28 +97,35 @@ class ApplicationCore
      *
      * @param array $siteParams Глобальные параметры сайта
      * @return void
-     *
-     * @todo Сделать Overrides
      */
-    public static function init(array $siteParams)
+    public static function init()
     {
         // Установка глобальных параметров сайта
-        self::setSiteParams($siteParams);
+        self::setSiteParams();
+
+        // Определение запроса
+        self::$request = new Request();
+
+        // Определение ответа
+        self::$response = new Response();
 
         // Определение раздела и подготовка данных ссылки
-        self::$router = Router::getInstance();
+        Application::$router = Router::getInstance();
 
-        // Подключение к базе данных
-        self::$db = Database::getInstance();
+        // Обработка запроса
+        list($route, $params) = self::$request->resolve();
 
-        // Инициализация кэша
-        Cache::getInstance();
+        // Инициализация компонентов
+        self::initComponents();
+                
+        // Инициализация ответа
+        self::$response->init();
+
+        // Маршрутизация приложения
+        self::$response = self::route($route, $params);
         
-        // Определение языка
-        //self::$params = \Hex\Base\Language::getCurrentLanguage();
-
-        // Запуск роутера
-		self::$router->runRouter();
+        // Отправка данных пользователю
+        self::$response->send();
     }
 
     /**
@@ -92,14 +134,9 @@ class ApplicationCore
      * @param array $params Глобальные параметры сайта
      * @return void
      */
-    protected static function setSiteParams(array $params)
+    protected static function setSiteParams()
     {
-        $defaultParams = array(
-			"multilang" => true,
-			"use_cache" => true
-        );
-		
-		self::$params = array_merge($defaultParams, $params);
+		self::$params = require(DIR_CONFIG.'/params.php');
 
         self::setIniParams();
     }
@@ -129,5 +166,65 @@ class ApplicationCore
         
 		// Установка часового пояса
 		date_default_timezone_set(TIMEZONE);
+    }
+
+    /**
+     * Configures an object with the initial property values.
+     *
+     * @param object $object the object to be configured
+     * @param array $properties the property initial values given in terms of name-value pairs.
+     * @return object the object itself
+     */
+    public static function configure($object, $properties)
+    {
+        foreach ($properties as $name => $value) {
+            $object->$name = $value;
+        }
+        return $object;
+    }
+    
+    /**
+     * Инициализация компонентов
+     *
+     * @return void
+     */
+    protected static function initComponents()
+    {
+		// Подключение к базе данных
+        self::$db = Database::getInstance();
+
+        // Инициализация кэша
+        Cache::getInstance();
+
+        // Определение языка
+        //self::$params = \Hex\Base\Language::getCurrentLanguage();
+    }
+
+    /**
+     * Возвращает контроллер по его идентификатору
+     */
+    public static function createController($controller, $config = array())
+    {
+        $controllerName = Controller::getFullClassName($controller);
+        return new $controllerName($controller);
+    }
+
+    /**
+     * Задаёт маршрут приложению
+     */
+    public static function route($route, $params = array())
+    {
+        list($controller, $action) = self::$router->parseRoute($route);
+
+        $controllerObject = self::createController($controller);
+
+        $result = $controllerObject->runAction($action, $params);
+
+        if ($result instanceof Response)
+            return $result;
+        else
+            Application::$response->content = $result;
+
+        return Application::$response;
     }
 }

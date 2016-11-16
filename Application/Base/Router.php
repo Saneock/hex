@@ -1,7 +1,7 @@
 <?php
 namespace Hex\Base;
 
-use Hex\Base\Application as Hex;
+use Hex\Base as Hex;
 
 /**
  * Маршрутизации данных
@@ -9,7 +9,7 @@ use Hex\Base\Application as Hex;
  * Определяет какой раздел показать, какой контроллер и метод вызвать.
  * Работает с данными в ссылке.
  *
- * Class Router
+ * Class RouterCore
  * @package Base
  */
 class RouterCore extends \Abstracts\Singleton
@@ -35,26 +35,39 @@ class RouterCore extends \Abstracts\Singleton
     private $sections;
 
 	/**
-     * Тип запроса
-	 *
-	 * Типы: html, html-block, ajax, json, xml
-	 *
-	 * html - Показ всей страницы
-	 * html-block - Показ отдельного блока, вызываемого с помощью передачи названия контроллера и метода
-	 * ajax - Приложение возвращает данные в формате JSON. HTML контент присутствует
-	 * json - Приложение возвращает данные в формате JSON. HTML контент отсутствует
-	 * xml - Приложение возвращает данные в формате XML
-     *
-     * @var string
-     */
-    public static $type = 'html';
-
-	/**
      * Главный роутер сайта
      *
      * @var array
      */
     private static $router;
+
+	/**
+     * Путь
+     *
+     * @var string
+     */
+    private static $route;
+
+	/**
+     * Параметры запроса
+     *
+     * @var array
+     */
+    private static $queryParams;
+
+	/**
+     * Путь по умолчанию
+     *
+     * @var string
+     */
+    private static $defaultRoute = 'page/index';
+
+	/**
+     * Путь ошибки
+     *
+     * @var string
+     */
+    private static $errorRoute = 'page/error';
 
 
 
@@ -64,38 +77,70 @@ class RouterCore extends \Abstracts\Singleton
 	protected function __construct()
     {
 		// Получение данных из ссылки
-		self::$url = self::parseUrl();
+		self::$url = self::parseUrl(Application::$request);
 
 		// Запись данных о раздлах в переменную
 		if(!is_array($this->sections))
-			$this->sections = self::getSectionsInfo();
+			$this->sections = self::getSections();
 
 		// Определение текущего раздела
-		Hex::$section = $this->getCurrentSection();
+		Hex\Application::$section = $this->getCurrentSection();
 
-		// Определение типа запроса
-		self::$type = $this->getRequestType();
+		// Определение директорий относительно раздела
+		$this->defineSectionDirs();
+
+		// Определение шаблонизатора
+		Hex\Application::$view = \Hex\Base\View::GetInstance();
 
 		// Определение класса роутинга
 		self::$router = $this->getRouterClass();
 
-		// Определение маршрутов приложения
-		$this->defineAppRoutes(self::$router);
+		// Установка страницы с ошибкой 404
+		$this->define404(self::$router);
 
-		// Определение пользовательских маршрутов
-		$this->defineRoutes(self::$router);
+		// Определение маршрутов приложения
+		//$this->defineAppRoutes(self::$router);
     }
 
 	/**
      * Получение данных из ссылки
      *
+     * @param Request $request
      * @return array
      */
-    public static function parseUrl() : array
+    public static function parseUrl(Request $request) : array
     {
-		$url = explode('/', trim(urldecode(URI), ' /'));
-		
+		$url = explode('/', trim(urldecode($request->getPathInfo()), ' /'));
+
 		return $url;
+	}
+
+	/**
+     * Обработка запроса
+     *
+     * @param Request $request
+     * @return array Первый элемент - путь, второй - параметры запроса.
+     */
+    public function parseRequest(Request $request) : array
+    {
+		if ($request->pathInfo == '') {
+			list(self::$route, self::$queryParams) = [self::$defaultRoute, []];
+		} else {
+			$this->defineRoute(self::$router);
+			$this->runRouter(); 
+		}
+
+		return [self::$route, self::$queryParams];
+	}
+	
+	/**
+     * Получение контроллера и действия из пути
+	 *
+     * @return array Первый элемент - контроллер, второй - действие.
+     */
+    public static function parseRoute($route)
+    { 
+		return explode('/', trim($route, ' /'));
 	}
 
 	/**
@@ -103,28 +148,28 @@ class RouterCore extends \Abstracts\Singleton
      *
      * @return array
      */
-	public static function getSectionsInfo()
+	public static function getSections()
 	{
 		return array(
-			'face' => array(
-				'title' => _l('Лицевая часть'),
+			'face' => new Section([
+				'title' => __('Лицевая часть'),
 				'name' => 'face',
 				'path' => 'frontend'
-			),
-			'admin' => array(
-				'title' => _l('Админ панель'),
+			]),
+			'admin' => new Section([
+				'title' => __('Админ панель'),
 				'name' => 'admin',
 				'path' => 'admin'
-			)	
+			])	
 		);
 	}
 
 	/**
      * Определение текущего раздела
      *
-     * @return array Возвращает данные о разделе
+     * @return Section Возвращает данные о разделе
      */
-    public function getCurrentSection() : array
+    public function getCurrentSection() : Section
     {
 		$section = current(self::$url);
 
@@ -143,6 +188,27 @@ class RouterCore extends \Abstracts\Singleton
 	}
 
 	/**
+     * Определение директорий относительно раздела
+     */
+    protected function defineSectionDirs()
+    {
+		// Section directory
+		define('DIR_SECTION', DIR_SECTIONS.'/'.Hex\Application::$section->path);
+
+		// Cache
+		define('DIR_SECTION_CACHE', DIR_SECTION.'/cache');
+
+		// Locale
+		define('DIR_SECTION_LOCALE', DIR_SECTION.'/locale');
+
+		// Templates
+		define('DIR_SECTION_TEMPLATES', DIR_SECTION.'/templates');
+
+		// Controllers
+		define('DIR_SECTION_CONTROLLERS', DIR_SECTION.'/controllers');
+	}
+
+	/**
      * Получение списка разделов
      *
      * @return array
@@ -150,33 +216,9 @@ class RouterCore extends \Abstracts\Singleton
     public function getSectionsList() : array
     {
 		if(!is_array($this->sections))
-			$this->sections = self::getSectionsInfo();
+			$this->sections = self::getSections();
 
 		return $this->sections;
-	}
-
-	/**
-     * Определение типа запроса
-     *
-     * @return string
-	 *
-	 * @todo Написать метод определения типа запроса
-     */
-    public function getRequestType() : string
-    {
-		if (
-			isset($_SERVER['HTTP_X_REQUESTED_WITH']) and
-			!empty($_SERVER['HTTP_X_REQUESTED_WITH']) and
-			strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'
-		) {
-			$type = 'ajax'; 
-		//} else if () {	
-
-		} else {
-			$type = self::$type;
-		}
-		
-		return $type;
 	}
 
 	/**
@@ -190,11 +232,25 @@ class RouterCore extends \Abstracts\Singleton
 	/**
      * Запуск роутера
 	 *
-     * @return void
+     * @return Router
      */
     public static function runRouter()
     {
-		self::$router->run();
+		return self::$router->run();
+	}
+
+	/**
+     * Установка страницы с ошибкой 404
+	 *
+     * @return void
+     */
+    private static function define404($router)
+    { 
+		$router->set404(function() {
+			header('HTTP/1.1 404 Not Found');
+			list($controller, $action) = explode('/', self::$errorRoute);
+			Hex\Application::route($controller, $action);
+		});
 	}
 
 	/**
@@ -203,24 +259,25 @@ class RouterCore extends \Abstracts\Singleton
      * @return void
 	 * @todo Написать действие выполнения метода
      */
-    private static function defineAppRoutes($router)
+    /*private static function defineAppRoutes($router)
     {
 		switch (self::$type) {
 			case 'ajax':
 				$this->routeAjax($router);
-				break;
+			break;
 		}
-	}
+	}*/
 
 	/**
      * Определение пользовательских маршрутов
 	 *
      * @return void
      */
-    private static function defineRoutes($router)
-    {
-		$router->get('/([a-z0-9_-]+)', function($page) {
-			
+    private static function defineRoute($router)
+    { 
+		$router->get('/(\w+)', function($page) {
+			self::$route = "page/index";
+			self::$queryParams = [];
 		});
 	}
 

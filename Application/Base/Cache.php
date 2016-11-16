@@ -4,7 +4,7 @@ namespace Hex\Base;
 /**
  * Работа с кэшем
  *
- * Class Cache
+ * Class CacheCore
  * @package Base
  */
 class CacheCore extends \Abstracts\Singleton

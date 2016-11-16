@@ -4,7 +4,7 @@ namespace Hex\Base;
 /**
  * Работа с базой данных
  *
- * Class Database
+ * Class DatabDatabaseCorease
  * @package Base
  */
 class DatabaseCore extends \Abstracts\Singleton

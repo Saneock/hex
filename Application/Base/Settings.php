@@ -2,7 +2,7 @@
 namespace Hex\Base;
 
 /**
- * Class Settings
+ * Class SettingsCore
  * @package Base
  */
 class SettingsCore
