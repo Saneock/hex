@@ -223,7 +223,8 @@ class Autoloader
             // didn't found mapped file
             return false;
         }
-        
+
+
         
         // If use overrides
 
@@ -249,7 +250,9 @@ class Autoloader
                 require_once($file);
 
                 if ($this->index[$classname.'Core']['type'] != 'interface') {
-                    eval('namespace '.$this->index[$classname]['namespace'].'; '.$this->index[$classname.'Core']['type'].' '.$this->index[$classname]['class'].' extends \\'.$classname.'Core {}');
+                    eval(
+                        ($this->index[$classname]['namespace'] !== '' ? 'namespace '.$this->index[$classname]['namespace'].'; ' : '')
+                        .$this->index[$classname.'Core']['type'].' '.$this->index[$classname]['class'].' extends \\'.$classname.'Core {}');
                 }
                 
                 return $file;
@@ -390,7 +393,7 @@ class Autoloader
                             $namespace = '';
                         }
 
-                        $classes[$namespace.'\\'.$m['classname']] = array(
+                        $classes[$namespace.($namespace !== '' ? '\\' : '').$m['classname']] = array(
                             'class' => $m['classname'],
                             'namespace' => $namespace,
                             'path' => $path.$file,
@@ -399,11 +402,11 @@ class Autoloader
                         );
 
                         if (substr($m['classname'], -4) == 'Core') {
-                            $classes[$namespace.'\\'.substr($m['classname'], 0, -4)] = array(
+                            $classes[$namespace.($namespace !== '' ? '\\' : '').substr($m['classname'], 0, -4)] = array(
                                 'class' => substr($m['classname'], 0, -4),
                                 'namespace' => $namespace,
                                 'path' => '',
-                                'type' => $classes[$namespace.'\\'.$m['classname']]['type'],
+                                'type' => $classes[$namespace.($namespace !== '' ? '\\' : '').$m['classname']]['type'],
                                 'override' => $host_mode
                             );
                         }

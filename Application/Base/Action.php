@@ -1,6 +1,7 @@
 <?php
 namespace Hex\Base;
 
+use Hex;
 use Hex\Base\Object;
 use Hex\Base\Controller;
 use Hex\Base\Application;
@@ -57,7 +58,7 @@ class ActionCore extends Object
     {
         $args = $this->controller->bindActionParams($this, $params);
 
-        //Yii::trace('Running action: ' . get_class($this) . '::run()', __METHOD__);
+        Hex::trace('Running action [' . $this->controller->name . '::' . $this->name . ', ' . Controller::getFullClassName($this->controller->name) . '::' . $this->actionMethod . '()] with params: '.json_encode($args));
 
         if (Application::$requestedParams === null) {
             Application::$requestedParams = $args;

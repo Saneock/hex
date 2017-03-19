@@ -3,6 +3,8 @@
 define('ENVIRONMENT', 'development');
 
 define('DEBUG', true);
+
+define('ENABLE_ERROR_HANDLER', false);
 	
 define('BEGIN_TIME', microtime(true));
 

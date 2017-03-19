@@ -4,7 +4,32 @@ include "memory_test.php";
 
 include "init.php";
 
-\Hex\Base\Application::init();
+Hex::$app->run();
+
+\Hex::error('Olololo');
+
+print_r(Hex::getLogger()->messages);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // ======================= Test

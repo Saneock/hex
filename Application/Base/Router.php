@@ -1,7 +1,10 @@
 <?php
 namespace Hex\Base;
 
-use Hex\Base as Hex;
+use Hex;
+use Hex\Base\Application;
+use Hex\Base\View;
+use Exception\InvalidRoute;
 
 /**
  * Маршрутизации данных
@@ -12,10 +15,8 @@ use Hex\Base as Hex;
  * Class RouterCore
  * @package Base
  */
-class RouterCore extends \Abstracts\Singleton
-{
-    protected static $instance;
-	
+class RouterCore
+{	
 	/**
      * Текущий адрес страницы, разбитый на массив
 	 *
@@ -53,7 +54,7 @@ class RouterCore extends \Abstracts\Singleton
      *
      * @var array
      */
-    private static $queryParams;
+    private static $queryParams = array();
 
 	/**
      * Путь по умолчанию
@@ -69,28 +70,35 @@ class RouterCore extends \Abstracts\Singleton
      */
     private static $errorRoute = 'page/error';
 
+	/**
+     * Тип запроса
+     *
+     * @var string
+     */
+    private $requestType = Response::FORMAT_HTML;
+
 
 
 	/**
      * @return \Hex\Base\Router
      */
-	protected function __construct()
+	public function __construct()
     {
 		// Получение данных из ссылки
-		self::$url = self::parseUrl(Application::$request);
+		self::$url = self::parseUrl(Hex::$app->getRequest());
+
+		// Определение типа запроса
+		$this->defineRequestType();
 
 		// Запись данных о раздлах в переменную
 		if(!is_array($this->sections))
 			$this->sections = self::getSections();
 
 		// Определение текущего раздела
-		Hex\Application::$section = $this->getCurrentSection();
+		Hex::$app->setSection($this->getCurrentSection());
 
 		// Определение директорий относительно раздела
 		$this->defineSectionDirs();
-
-		// Определение шаблонизатора
-		Hex\Application::$view = \Hex\Base\View::GetInstance();
 
 		// Определение класса роутинга
 		self::$router = $this->getRouterClass();
@@ -99,7 +107,7 @@ class RouterCore extends \Abstracts\Singleton
 		$this->define404(self::$router);
 
 		// Определение маршрутов приложения
-		//$this->defineAppRoutes(self::$router);
+		$this->defineAppRoutes(self::$router);
     }
 
 	/**
@@ -122,8 +130,8 @@ class RouterCore extends \Abstracts\Singleton
      * @return array Первый элемент - путь, второй - параметры запроса.
      */
     public function parseRequest(Request $request) : array
-    {
-		if ($request->pathInfo == '') {
+    {    
+		if ($request->getPathInfo() == '') { 
 			list(self::$route, self::$queryParams) = [self::$defaultRoute, []];
 		} else {
 			$this->defineRoute(self::$router);
@@ -131,6 +139,36 @@ class RouterCore extends \Abstracts\Singleton
 		}
 
 		return [self::$route, self::$queryParams];
+	}
+
+	/**
+     * Определение типа запроса
+	 *
+     * @return void
+     */
+    private function defineRequestType()
+    {
+		$type = array_shift(self::$url);
+
+		if (strpos($type, '-') === 0) {
+			$type = substr($type, 1);
+			switch ($type) {
+				case Response::FORMAT_RAW:
+				case Response::FORMAT_HTML:
+				case Response::FORMAT_JSON:
+				//case Response::FORMAT_JSONP:
+				case Response::FORMAT_XML:
+					Hex::$app->getResponse()->format = $type;
+				break;
+				default:
+					array_unshift(self::$url, '-'.$type);
+				break;
+			}
+		} else {
+			array_unshift(self::$url, $type);
+		}
+
+		$_SERVER['REQUEST_URI'] = '/'.implode('/', self::$url);
 	}
 	
 	/**
@@ -140,7 +178,21 @@ class RouterCore extends \Abstracts\Singleton
      */
     public static function parseRoute($route)
     { 
-		return explode('/', trim($route, ' /'));
+		$elements = explode('/', trim($route, ' /'));
+
+		if (count($elements) == 2) {
+			$module = false;
+			$controller = $elements[0];
+			$action = $elements[1];
+		} elseif (count($elements) == 3) {
+			$module = $elements[0];
+			$controller = $elements[1];
+			$action = $elements[2];
+		} else {
+			throw new InvalidRoute("Route contain ".count($elements)." parts, instead of 2 or 3.");
+		}
+
+		return [$controller, $action, $module];
 	}
 
 	/**
@@ -193,7 +245,7 @@ class RouterCore extends \Abstracts\Singleton
     protected function defineSectionDirs()
     {
 		// Section directory
-		define('DIR_SECTION', DIR_SECTIONS.'/'.Hex\Application::$section->path);
+		define('DIR_SECTION', DIR_SECTIONS.'/'.Hex::$app->getSection()->path);
 
 		// Cache
 		define('DIR_SECTION_CACHE', DIR_SECTION.'/cache');
@@ -247,9 +299,8 @@ class RouterCore extends \Abstracts\Singleton
     private static function define404($router)
     { 
 		$router->set404(function() {
-			header('HTTP/1.1 404 Not Found');
-			list($controller, $action) = explode('/', self::$errorRoute);
-			Hex\Application::route($controller, $action);
+			Hex::$app->getResponse()->setStatusCode(404);
+			Hex::$app->route(self::$errorRoute);
 		});
 	}
 
@@ -259,14 +310,13 @@ class RouterCore extends \Abstracts\Singleton
      * @return void
 	 * @todo Написать действие выполнения метода
      */
-    /*private static function defineAppRoutes($router)
+    private static function defineAppRoutes($router)
     {
-		switch (self::$type) {
-			case 'ajax':
-				$this->routeAjax($router);
-			break;
+		if (Hex::$app->getRequest()->getIsAjax()) {
+			$this->routeAjax($router);
+			return;
 		}
-	}*/
+	}
 
 	/**
      * Определение пользовательских маршрутов
@@ -274,10 +324,10 @@ class RouterCore extends \Abstracts\Singleton
      * @return void
      */
     private static function defineRoute($router)
-    { 
-		$router->get('/(\w+)', function($page) {
-			self::$route = "page/index";
-			self::$queryParams = [];
+    {
+		$router->get('/([a-z0-9_-]+)', function($page) {
+			self::$route = "page/".$page;
+			self::$queryParams = ['pageName' => $page];
 		});
 	}
 
@@ -299,6 +349,8 @@ class RouterCore extends \Abstracts\Singleton
 				throw new \Exception\Router\MissingArgument($missingArgument, 'section*/ajax/lang/controller/method', 'GET');
 
 			// Do actions
+			echo 'sfsdf';
+			self::$route = "page/".$page;
 		});
 	}
 

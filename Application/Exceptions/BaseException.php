@@ -23,6 +23,7 @@ abstract class BaseException extends \Exception implements \Interfaces\IExceptio
         if (!$message) {
             throw new $this('Unknown '. get_class($this));
         }
+   
         parent::__construct($message, $code, $previous);
     }
 

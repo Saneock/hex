@@ -1,7 +1,7 @@
 <?php
 namespace Hex\Base;
 
-use Hex\Base\Application as Hex;
+use Hex as Hex;
 
 /**
  * Object is the base class that implements the *property* feature.

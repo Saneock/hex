@@ -1,7 +1,7 @@
 <?php
 namespace Hex\Base;
 
-use Hex\Base as Hex;
+use Hex;
 
 /**
  * Объект шаблона
@@ -9,10 +9,8 @@ use Hex\Base as Hex;
  * Class ViewCore
  * @package Base
  */
-class ViewCore extends \Abstracts\Singleton
+class ViewCore extends Object
 {
-    protected static $instance;
-
     /**
      * Объект шаблонизатора
 	 *
@@ -45,20 +43,23 @@ class ViewCore extends \Abstracts\Singleton
      *
      * @return \Hex\Base\ViewCore
      */
-	protected function __construct()
+	public function __construct($config = [])
     {
-        // Если тип запроса JSON, то возвращаем false
-        if (in_array(Application::$response->format, [Application::$response::FORMAT_JSON, Application::$response::FORMAT_JSONP, Application::$response::FORMAT_XML]))
-            return false;
+        // Если тип запроса JSON, то возвращаем null
+        /*if (in_array(Hex::$app->GetRequest()->format, [Hex::$app->Get::FORMAT_JSON, Application::$response::FORMAT_JSONP, Application::$response::FORMAT_XML]))
+            return null;*/
 
 		$loader = new \Twig_Loader_Filesystem(DIR_SECTION_TEMPLATES);
 
         self::$engine = new \Twig_Environment($loader, array(
             'cache' => self::$cacheDirectory,
-            'auto_reload' => (ENVIRONMENT == 'development')
+            'auto_reload' => (ENVIRONMENT == 'development'),
+            'autoescape' => false
         ));
 
         $this->addExtensions();
+
+        parent::__construct($config);
     }
 
     /**
@@ -154,7 +155,7 @@ class ViewCore extends \Abstracts\Singleton
      *
      * @return string
      */
-	public static function render($template, $data = array(), $appendExtension = true)
+	public function render($template, $data = array(), $appendExtension = true)
     {
         if(!self::$engine)
             return null;
@@ -170,7 +171,7 @@ class ViewCore extends \Abstracts\Singleton
      *
      * @return string
      */
-	public static function display($template, $data = array(), $appendExtension = true)
+	public function display($template, $data = array(), $appendExtension = true)
     {
 		echo self::render($template, $data, $appendExtension);
     }	

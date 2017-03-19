@@ -1,6 +1,8 @@
 <?php
 namespace Hex\Base;
 
+use Hex;
+
 /**
  * The web Request class represents an HTTP request
  *
@@ -131,7 +133,7 @@ class Request extends \Abstracts\Request
     /**
      * @var array the parsers for converting the raw HTTP request body into [[bodyParams]].
      * The array keys are the request `Content-Types`, and the array values are the
-     * corresponding configurations for [[Yii::createObject|creating the parser objects]].
+     * corresponding configurations for [[Hex::createObject|creating the parser objects]].
      * A parser must implement the [[RequestParserInterface]].
      *
      * To enable parsing for JSON requests you can use the [[JsonParser]] class like in the following example:
@@ -166,7 +168,7 @@ class Request extends \Abstracts\Request
      */
     public function resolve()
     {
-        $result = Application::$router->parseRequest($this);
+        $result = Hex::$app->getRouter()->parseRequest($this);    
         if ($result !== false) {
             list($route, $params) = $result;
             if ($this->_queryParams === null) {
@@ -365,6 +367,7 @@ class Request extends \Abstracts\Request
      * @see getMethod()
      * @see getBodyParam()
      * @see setBodyParams()
+     * @todo Настроисть парсеры
      */
     public function getBodyParams()
     {
@@ -382,13 +385,13 @@ class Request extends \Abstracts\Request
             }
 
             if (isset($this->parsers[$contentType])) {
-                $parser = Yii::createObject($this->parsers[$contentType]);
+                $parser = Hex::createObject($this->parsers[$contentType]);
                 if (!($parser instanceof RequestParserInterface)) {
                     throw new InvalidConfigException("The '$contentType' request parser is invalid. It must implement the yii\\web\\RequestParserInterface.");
                 }
                 $this->_bodyParams = $parser->parse($this->getRawBody(), $contentType);
             } elseif (isset($this->parsers['*'])) {
-                $parser = Yii::createObject($this->parsers['*']);
+                $parser = Hex::createObject($this->parsers['*']);
                 if (!($parser instanceof RequestParserInterface)) {
                     throw new InvalidConfigException("The fallback request parser is invalid. It must implement the yii\\web\\RequestParserInterface.");
                 }
@@ -1149,7 +1152,7 @@ class Request extends \Abstracts\Request
     public function getPreferredLanguage(array $languages = [])
     {
         if (empty($languages)) {
-            return Yii::$app->language;
+            return Application::$language;
         }
         foreach ($this->getAcceptableLanguages() as $acceptableLanguage) {
             $acceptableLanguage = str_replace('_', '-', strtolower($acceptableLanguage));
@@ -1213,6 +1216,7 @@ class Request extends \Abstracts\Request
      * Converts `$_COOKIE` into an array of [[Cookie]].
      * @return array the cookies obtained from request
      * @throws InvalidConfigException if [[cookieValidationKey]] is not set when [[enableCookieValidation]] is true
+     * @todo Разобраться с Security
      */
     protected function loadCookies()
     {
@@ -1225,7 +1229,7 @@ class Request extends \Abstracts\Request
                 if (!is_string($value)) {
                     continue;
                 }
-                $data = Yii::$app->getSecurity()->validateData($value, $this->cookieValidationKey);
+                $data = Hex::$app->getSecurity()->validateData($value, $this->cookieValidationKey);
                 if ($data === false) {
                     continue;
                 }
@@ -1282,28 +1286,31 @@ class Request extends \Abstracts\Request
      * Loads the CSRF token from cookie or session.
      * @return string the CSRF token loaded from cookie or session. Null is returned if the cookie or session
      * does not have CSRF token.
+     * @todo Разобраться с Session
      */
     protected function loadCsrfToken()
     {
         if ($this->enableCsrfCookie) {
             return $this->getCookies()->getValue($this->csrfParam);
         } else {
-            return Yii::$app->getSession()->get($this->csrfParam);
+            return Hex::$app->getSession()->get($this->csrfParam);
         }
     }
 
     /**
      * Generates  an unmasked random token used to perform CSRF validation.
      * @return string the random token for CSRF validation.
+     * @todo Разобраться с Security
+     * @todo Разобраться с Session
      */
     protected function generateCsrfToken()
     {
-        $token = Yii::$app->getSecurity()->generateRandomString();
+        $token = Hex::$app->getSecurity()->generateRandomString();
         if ($this->enableCsrfCookie) {
             $cookie = $this->createCsrfCookie($token);
-            Yii::$app->getResponse()->getCookies()->add($cookie);
+            Application::$responce->getCookies()->add($cookie);
         } else {
-            Yii::$app->getSession()->set($this->csrfParam, $token);
+            Hex::$app->getSession()->set($this->csrfParam, $token);
         }
         return $token;
     }
@@ -1314,6 +1321,7 @@ class Request extends \Abstracts\Request
      * @param string $token1
      * @param string $token2
      * @return string the XOR result
+     * @todo Разобраться с StringHelper
      */
     private function xorTokens($token1, $token2)
     {
@@ -1390,6 +1398,7 @@ class Request extends \Abstracts\Request
      * @param string $token
      * @param string $trueToken
      * @return boolean
+     * @todo Разобраться с StringHelper
      */
     private function validateCsrfTokenInternal($token, $trueToken)
     {

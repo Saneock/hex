@@ -119,6 +119,22 @@
     'type' => 'class',
     'override' => false,
   ),
+  'Hex' => 
+  array (
+    'class' => 'Hex',
+    'namespace' => '',
+    'path' => '',
+    'type' => 'class',
+    'override' => false,
+  ),
+  'HexCore' => 
+  array (
+    'class' => 'HexCore',
+    'namespace' => '',
+    'path' => 'Application/Hex.php',
+    'type' => 'class',
+    'override' => false,
+  ),
   'Hex\\Base\\Action' => 
   array (
     'class' => 'Action',
@@ -231,6 +247,22 @@
     'type' => 'class',
     'override' => false,
   ),
+  'Hex\\Base\\Module' => 
+  array (
+    'class' => 'Module',
+    'namespace' => 'Hex\\Base',
+    'path' => '',
+    'type' => 'class',
+    'override' => false,
+  ),
+  'Hex\\Base\\ModuleCore' => 
+  array (
+    'class' => 'ModuleCore',
+    'namespace' => 'Hex\\Base',
+    'path' => 'Application/Base/Module.php',
+    'type' => 'class',
+    'override' => false,
+  ),
   'Hex\\Base\\Object' => 
   array (
     'class' => 'Object',
@@ -276,6 +308,14 @@
     'class' => 'Section',
     'namespace' => 'Hex\\Base',
     'path' => 'Application/Base/Section.php',
+    'type' => 'class',
+    'override' => false,
+  ),
+  'Hex\\Base\\ServiceLocator' => 
+  array (
+    'class' => 'ServiceLocator',
+    'namespace' => 'Hex\\Base',
+    'path' => 'Application/Base/ServiceLocator.php',
     'type' => 'class',
     'override' => false,
   ),
@@ -332,6 +372,14 @@
     'class' => 'Logger',
     'namespace' => 'Hex\\Log',
     'path' => 'Application/Log/Logger.php',
+    'type' => 'class',
+    'override' => false,
+  ),
+  'Hex\\Twig_Extensions\\Execute' => 
+  array (
+    'class' => 'Execute',
+    'namespace' => 'Hex\\Twig_Extensions',
+    'path' => 'Application/Twig_Extensions/Execute.php',
     'type' => 'class',
     'override' => false,
   ),

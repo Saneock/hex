@@ -1,8 +1,8 @@
 <?php
 namespace web\frontend\controllers;
 
-use Hex;
 use Hex\Base\Controller;
+use Hex\Base as Hex;
 
 class Page extends Controller
 {
@@ -10,11 +10,6 @@ class Page extends Controller
 
 	public function actionIndex()
 	{
-		return ['page' => 'index'];
-		return $this->render('page/index', ['page' => 'index2']);
-	}
-
-	public function actionItems($pageName = null)
-	{
+		return $this->render('page/index');
 	}
 }

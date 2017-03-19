@@ -1,6 +1,11 @@
 <?php
 namespace Hex\Base;
 
+use Hex;
+use Exception\InvalidConfig as InvalidConfigException;
+use Exception\InvalidParam as InvalidParamException;
+use yii\web\ResponseFormatterInterface;
+
 /**
  * Класс веб-ответа, представляющий собой ответ HTTP
  *
@@ -8,7 +13,7 @@ namespace Hex\Base;
  * Он также контролирует HTTP [[statusCode|код ответа]].
  *
  * Ответ сконфигурирован как компонент приложения в [[\Hex\Base\Application]] по умолчанию.
- * Вы можете получить доступ к этому экземпляру через `Application::$response`.
+ * Вы можете получить доступ к этому экземпляру через `Hex::$app->getResponse()`.
  *
  * @property CookieCollection $cookies Коллекция cookie. Это свойство только для чтения.
  * @property string $downloadHeaders Имя файла вложения. Это свойство только для записи.
@@ -320,7 +325,7 @@ class Response extends \Abstracts\Response
         if ($this->_cookies === null) {
             return;
         }
-        $request = Application::$request;
+        $request = Hex::$app->getRequest();
         if ($request->enableCookieValidation) {
             if ($request->cookieValidationKey == '') {
                 throw new \Exception\InvalidConfig(get_class($request) . '::cookieValidationKey must be configured with a secret key.');
@@ -330,7 +335,7 @@ class Response extends \Abstracts\Response
         foreach ($this->getCookies() as $cookie) {
             $value = $cookie->value;
             if ($cookie->expire != 1  && isset($validationKey)) {
-                $value = Yii::$app->getSecurity()->hashData(serialize([$cookie->name, $value]), $validationKey);
+                $value = Hex::$app->getSecurity()->hashData(serialize([$cookie->name, $value]), $validationKey);
             }
             setcookie($cookie->name, $value, $cookie->expire, $cookie->path, $cookie->domain, $cookie->secure, $cookie->httpOnly);
         }
@@ -580,14 +585,14 @@ class Response extends \Abstracts\Response
      * заголовок до вызова [[send()]]. В действии контроллера вы можете использовать этот метод следующим образом:
      *
      * ```php
-     * return Application::$response->redirect($url);
+     * return Hex::$app->getResponse()->redirect($url);
      * ```
      *
      * В других местах, если вы хотите отправить "Location" заголовок сразу, вы должны использовать
      * cледующий код:
      *
      * ```php
-     * Application::$response->redirect($url)->send();
+     * Hex::$app->getResponse()->redirect($url)->send();
      * return;
      * ```
      * В режиме AJAX, это не будет работать, как и следовало ожидать, как правило, если нет какого-то
@@ -609,7 +614,6 @@ class Response extends \Abstracts\Response
      * может не активировать перенаправление браузера при AJAX/PJAX ответе.
      * Действует только при отсутствии заголовка `X-Ie-Redirect-Compatibility`.
      * @return $this сам объект ответа
-     * @todo Сделать класс-помощник [[Url]]
      */
     public function redirect($url, $statusCode = 302, $checkAjax = true)
     {
@@ -617,18 +621,18 @@ class Response extends \Abstracts\Response
             // ensure the route is absolute
             $url[0] = '/' . ltrim($url[0], '/');
         }
-        //$url = Url::to($url);
+   
         if (strpos($url, '/') === 0 && strpos($url, '//') !== 0) {
-            $url = Application::$request->getHostInfo() . $url;
+            $url = Hex::$app->getRequest()->getHostInfo() . $url;
         }
 
         if ($checkAjax) {
-            if (Application::$request->getIsAjax()) {
-                if (Application::$request->getHeaders()->get('X-Ie-Redirect-Compatibility') !== null && $statusCode === 302) {
+            if (Hex::$app->getRequest()->getIsAjax()) {
+                if (Hex::$app->getRequest()->getHeaders()->get('X-Ie-Redirect-Compatibility') !== null && $statusCode === 302) {
                     // Ajax 302 redirect in IE does not work. Change status code to 200. See https://github.com/yiisoft/yii2/issues/9670
                     $statusCode = 200;
                 }
-                if (Application::$request->getIsPjax()) {
+                if (Hex::$app->getRequest()->getIsPjax()) {
                     $this->getHeaders()->set('X-Pjax-Url', $url);
                 } else {
                     $this->getHeaders()->set('X-Redirect', $url);
@@ -653,7 +657,7 @@ class Response extends \Abstracts\Response
      * В действии контроллера вы можете использовать этот метод следующим образом:
      *
      * ```php
-     * return Application::$request->refresh();
+     * return Hex::$app->getResponse()->refresh();
      * ```
      *
      * @param string $anchor якорь, который должен быть добавлен к перенаправляемуму URL.
@@ -662,7 +666,7 @@ class Response extends \Abstracts\Response
      */
     public function refresh($anchor = '')
     {
-        return $this->redirect(Application::$request->getUrl() . $anchor);
+        return $this->redirect(Hex::$app->getRequest()->getUrl() . $anchor);
     }
 
     private $_cookies;
@@ -792,7 +796,6 @@ class Response extends \Abstracts\Response
 
     /**
      * Подготавливает отправляемый запрос
-     * Реализация по умолчанию будет преобразовывать [[data]] в [[content]] и установить заголовки соответствующим образом.
      *
      * @throws \Exception\InvalidConfig если форматировщик для указанного формата является недействительным или [[format]] не поддерживается
      * @todo Оптимизировать метод под текущий движок
@@ -802,23 +805,23 @@ class Response extends \Abstracts\Response
         if ($this->stream !== null) {
             return;
         }
-        /*
+        
         if (isset($this->formatters[$this->format])) {
             $formatter = $this->formatters[$this->format];
             if (!is_object($formatter)) {
-                $this->formatters[$this->format] = $formatter = Yii::createObject($formatter);
+                $this->formatters[$this->format] = $formatter = Hex::createObject($formatter);
             }
             if ($formatter instanceof ResponseFormatterInterface) {
-                $formatter->format($this);
+                $formatter->format($this); 
             } else {
-                throw new \Exception\InvalidConfig("The '{$this->format}' response formatter is invalid. It must implement the ResponseFormatterInterface.");
+                throw new InvalidConfigException("The '{$this->format}' response formatter is invalid. It must implement the ResponseFormatterInterface.");
             }
         } elseif ($this->format === self::FORMAT_RAW) {
             if ($this->data !== null) {
                 $this->content = $this->data;
             }
         } else {
-            throw new \Exception\InvalidConfig("Unsupported response format: {$this->format}");
+            throw new InvalidConfigException("Unsupported response format: {$this->format}");
         }
 
         if (is_array($this->content)) {
@@ -827,8 +830,8 @@ class Response extends \Abstracts\Response
             if (method_exists($this->content, '__toString')) {
                 $this->content = $this->content->__toString();
             } else {
-                throw new \Exception\InvalidParam('Response content must be a string or an object implementing __toString().');
+                throw new InvalidParamException('Response content must be a string or an object implementing __toString().');
             }
-        }*/
+        }
     }
 }

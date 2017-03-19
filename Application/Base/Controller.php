@@ -1,6 +1,7 @@
 <?php
 namespace Hex\Base;
 
+use Hex;
 use Hex\Base\Object;
 use Hex\Base\Action;
 use Hex\Base\Application;
@@ -14,9 +15,9 @@ use Hex\Base\View;
  */
 class ControllerCore extends Object
 {
-    const EVENT_BEFORE_ACTION = 'beforeAction';
+    //const EVENT_BEFORE_ACTION = 'beforeAction';
 
-    const EVENT_AFTER_ACTION = 'afterAction';
+    //const EVENT_AFTER_ACTION = 'afterAction';
 
     public $name;
 
@@ -30,6 +31,10 @@ class ControllerCore extends Object
 
     public $actionParams = [];
 
+    /**
+     * @var View the view object that can be used to render views or view files.
+     */
+    private $_view;
 
     public function __construct($name, $config = [])
     {
@@ -134,7 +139,7 @@ class ControllerCore extends Object
             throw new \Exception\InvalidRoute('Unable to resolve the request: ' . $this->getUniqueId() . '/' . $id);
         }
 
-        //Yii::trace('Route to run: ' . $action->getUniqueId(), __METHOD__);
+        //Hex::trace('Route to run: ' . $action->getUniqueId(), __METHOD__);
 
         if (Application::$requestedAction === null) {
             Application::$requestedAction = $action;
@@ -178,11 +183,11 @@ class ControllerCore extends Object
 
     /**
      * Binds the parameters to the action.
-     * This method is invoked by [[\yii\base\Action]] when it begins to run with the given parameters.
+     * This method is invoked by [[\Hex\Base\Action]] when it begins to run with the given parameters.
      * This method will check the parameter names that the action requires and return
      * the provided parameters according to the requirement. If there is any missing parameter,
      * an exception will be thrown.
-     * @param \yii\base\Action $action the action to be bound with parameters
+     * @param \Hex\Base\Action $action the action to be bound with parameters
      * @param array $params the parameters to be bound to the action
      * @return array the valid parameters that the action can run with.
      * @throws BadRequestHttpException if there are missing or invalid parameters.
@@ -198,9 +203,21 @@ class ControllerCore extends Object
         $args = [];
         $missing = [];
         $actionParams = [];
-        foreach ($method->getParameters() as $param) {
+
+        $isIndexArray = (array_keys($params) === range(0, count($params) - 1));
+
+        foreach ($method->getParameters() as $key => $param) {
             $name = $param->getName();
-            if (array_key_exists($name, $params)) {
+            if ($isIndexArray) { 
+                if ($param->isArray()) { 
+                    $args[] = $actionParams[$name] = (array) $params[$key];
+                } elseif (!is_array($params[$key])) {
+                    $args[] = $actionParams[$name] = $params[$key];
+                } else {
+                    throw new \Exceptions\Http\Client\BadRequestException('Invalid data received for parameter "'.$name.'"');
+                }
+                unset($params[$name]);
+            } elseif (array_key_exists($name, $params)) {
                 if ($param->isArray()) {
                     $args[] = $actionParams[$name] = (array) $params[$name];
                 } elseif (!is_array($params[$name])) {
@@ -227,8 +244,8 @@ class ControllerCore extends Object
 
     public function beforeAction($action)
     {
-        //if ($this->enableCsrfValidation && Yii::$app->getErrorHandler()->exception === null && !Yii::$app->getRequest()->validateCsrfToken()) {
-        if ($this->enableCsrfValidation/* && !Application::$request->validateCsrfToken()*/) {
+        //if ($this->enableCsrfValidation && Hex::$app->getErrorHandler()->exception === null && !Hex::$app->getRequest()->validateCsrfToken()) {
+        if ($this->enableCsrfValidation/* && !Hex::$app->getRequest()->validateCsrfToken()*/) {
             throw new \Exceptions\Http\Client\BadRequestException(__('Unable to verify your data submission.'));
         }
         
@@ -240,9 +257,82 @@ class ControllerCore extends Object
         return $result;
     }
 
+
+    /**
+     * Returns the view object that can be used to render views or view files.
+     * The [[render()]], [[renderPartial()]] and [[renderContent()]] methods will use
+     * this view object to implement the actual view rendering.
+     * If not set, it will default to the "view" application component.
+     * @return View|\Hex\Base\View the view object that can be used to render views or view files.
+     */
+    public function getView()
+    {
+        if ($this->_view === null) {
+            $this->_view = Hex::$app->getView();
+        }
+        return $this->_view;
+    }
+
+    /**
+     * Sets the view object to be used by this controller.
+     * @param View|\Hex\Base\View $view the view object that can be used to render views or view files.
+     */
+    public function setView($view)
+    {
+        $this->_view = $view;
+    }
+
+    
+    /**
+     * Finds the applicable layout file.
+     * @param View $view the view object to render the layout file.
+     * @return string|boolean the layout file path, or false if layout is not needed.
+     * Please refer to [[renderContent()]] on how to specify this parameter.
+     */
+    public function findLayoutFile($view)
+    {
+        //$module = $this->module;
+        if (is_string($this->layout)) {
+            $layout = $this->layout;
+        }/* elseif ($this->layout === null) {
+            while ($module !== null && $module->layout === null) {
+                $module = $module->module;
+            }
+            if ($module !== null && is_string($module->layout)) {
+                $layout = $module->layout;
+            }
+        }*/
+
+        if (!isset($layout)) {
+            return false;
+        }
+
+        $file = Hex::$app->getLayoutsPath() . DIRECTORY_SEPARATOR . $layout;
+        
+        if (pathinfo($file, PATHINFO_EXTENSION) !== '') {
+            return $file;
+        }
+
+        $path = $file . '.' . $view::$templateExtension;
+        if ($view::$templateExtension !== 'php' && !is_file(DIR_SECTION_TEMPLATES.'/'.$path)) {
+            $path = $file . '.php';
+        }
+
+        return $path;
+    }
+
+    /**
+     * Renders a view with applying layout.
+     * @param string $view the view name. Please refer to [[render()]] on how to specify a view name.
+     * @param array $params the parameters (name-value pairs) that should be made available in the view.
+     * @return string the rendering result of the layout with the given view template
+     * If the layout is disabled, rendered view will be returned back.
+     */
     public function render($view, $params = [])
     {
-        $content = View::render($view, $params);
+        Hex::$app->getResponse()->data = $params;
+
+        $content = $this->getView()->render($view, $params);
         return $this->renderContent($content);
     }
 
@@ -251,13 +341,12 @@ class ControllerCore extends Object
      * @param string $content the static string being rendered
      * @return string the rendering result of the layout with the given static string as the `$content` variable.
      * If the layout is disabled, the string will be returned back.
-     * @since 2.0.1
      */
     public function renderContent($content)
     {
         $layoutFile = $this->findLayoutFile($this->getView());
         if ($layoutFile !== false) {
-            return View::render($layoutFile, ['content' => $content]);
+            return $this->getView()->render($layoutFile, ['content' => $content], false);
         } else {
             return $content;
         }
@@ -268,11 +357,14 @@ class ControllerCore extends Object
      * This method differs from [[render()]] in that it does not apply any layout.
      * @param string $view the view name. Please refer to [[render()]] on how to specify a view name.
      * @param array $params the parameters (name-value pairs) that should be made available in the view.
+     * @param bool $appendExtension Set to false if view name contains extension  
      * @return string the rendering result.
-     * @throws InvalidParamException if the view file does not exist.
+     * @throws Twig_Error_Loader if the view file does not exist.
      */
-    public function renderPartial($view, $params = [])
+    public function renderPartial($view, $params = [], $appendExtension = true)
     {
-        return View::render($view, $params, $this);
+        Hex::$app->getResponse()->data = $params;
+        
+        return $this->getView()->render($view, $params, $this, $appendExtension);
     }
 }

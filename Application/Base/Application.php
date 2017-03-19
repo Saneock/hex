@@ -1,13 +1,19 @@
 <?php
 namespace Hex\Base;
 
+use Hex;
+use Hex\Base\Module;
+use Hex\Base\Response;
+use \Exception\InvalidConfig as InvalidConfigException;
+use \Exception\InvalidRoute;
+
 /**
  * Основной класс служащий инициатором для отображения сайта 
  *
  * Class ApplicationCore
  * @package Base
  */
-class ApplicationCore
+class ApplicationCore extends Module
 {
     /**
      * Массив с глобальными параметрами сайта
@@ -24,46 +30,11 @@ class ApplicationCore
     public static $charset = ENCODING;
 
     /**
-     * Главный роутер сайта
-     *
-     * @var array
-     */
-    public static $router;
-
-    /**
      * Данные текущего раздела
      *
      * @var array
      */
-    public static $section;
-
-    /**
-     * Массив с данными выбранного языка
-     *
-     * @var array
-     */
-    public static $language;
-
-    /**
-     * Объект базы данных
-     *
-     * @var Database
-     */
-    public static $db;
-
-    /**
-     * Объект кэша
-     *
-     * @var Cache
-     */
-    public static $cache;
-
-    /**
-     * Объект шаблонизатора
-     *
-     * @var bool|object
-     */
-    public static $view;
+    protected static $section;
 
     /**
      * @var Controller
@@ -79,53 +50,96 @@ class ApplicationCore
      * @var array
      */
     public static $requestedParams;
-
-    /**
-     * @var Request
-     */
-    public static $request;
-
-    /**
-     * @var Response
-     */
-    public static $response;
     
 
 
     /**
-     * Инициализация сайта
-     *
-     * @param array $siteParams Глобальные параметры сайта
-     * @return void
+     * Constructor.
+     * @param array $config name-value pairs that will be used to initialize the object properties.
+     * Note that the configuration must contain both [[id]] and [[basePath]].
+     * @throws InvalidConfigException if either [[id]] or [[basePath]] configuration is missing.
      */
-    public static function init()
+    public function __construct($config = [])
+    {
+        $this->preInit($config);
+
+        $this->registerErrorHandler($config);
+
+        Object::__construct($config);
+    }
+
+    /**
+     * Pre-initializes the application.
+     * This method is called at the beginning of the application constructor.
+     * It initializes several important application properties.
+     * If you override this method, please make sure you call the parent implementation.
+     * @param array $config the application configuration
+     */
+    public function preInit(&$config)
     {
         // Установка глобальных параметров сайта
         self::setSiteParams();
 
-        // Определение запроса
-        self::$request = new Request();
+        // Merge core components with custom components
+        foreach ($this->coreComponents() as $id => $component) {
+            if (!isset($config['components'][$id])) {
+                $config['components'][$id] = $component;
+            } elseif (is_array($config['components'][$id]) && !isset($config['components'][$id]['class'])) {
+                $config['components'][$id]['class'] = $component['class'];
+            }
+        } 
+    }
 
-        // Определение ответа
-        self::$response = new Response();
+    /**
+     * Returns the configuration of core application components.
+     * @see set()
+     */
+    public function coreComponents()
+    {
+        return [
+            'request' => ['class' => 'Hex\Base\Request'],
+            'response' => ['class' => 'Hex\Base\Response'],
+            'router' => ['class' => 'Hex\Base\Router'],
+            'session' => ['class' => 'yii\web\Session'],
+            'errorHandler' => ['class' => 'yii\web\ErrorHandler'],
+            'log' => ['class' => 'yii\log\Dispatcher'],
+            'view' => ['class' => 'Hex\Base\View'],
+            //'formatter' => ['class' => 'yii\i18n\Formatter'],
+            //'i18n' => ['class' => 'yii\i18n\I18N'],
+            'mailer' => ['class' => 'yii\swiftmailer\Mailer'],
+            //'urlManager' => ['class' => 'yii\web\UrlManager'],
+            //'assetManager' => ['class' => 'yii\web\AssetManager'],
+            'security' => ['class' => 'yii\base\Security'],
+        ];
+    }
 
-        // Определение раздела и подготовка данных ссылки
-        Application::$router = Router::getInstance();
+    /**
+     * Инициализация сайта
+     *
+     * @return void
+     */
+    public function init()
+    {
+    }
 
+    /**
+     * Запуск приложения
+     *
+     * @return void
+     */
+    public function run()
+    {
         // Обработка запроса
-        list($route, $params) = self::$request->resolve();
-
-        // Инициализация компонентов
-        self::initComponents();
-                
+        list($route, $params) = $this->getRequest()->resolve();
+        
         // Инициализация ответа
-        self::$response->init();
+        $this->getResponse()->init();
 
         // Маршрутизация приложения
-        self::$response = self::route($route, $params);
-        
+        $this->set('response', self::route($route, $params));
+      
         // Отправка данных пользователю
-        self::$response->send();
+        $this->getResponse()->send();
     }
 
     /**
@@ -169,62 +183,245 @@ class ApplicationCore
     }
 
     /**
-     * Configures an object with the initial property values.
-     *
-     * @param object $object the object to be configured
-     * @param array $properties the property initial values given in terms of name-value pairs.
-     * @return object the object itself
+     * Returns current \Hex\Base\Section object
      */
-    public static function configure($object, $properties)
+    public function getSection()
     {
-        foreach ($properties as $name => $value) {
-            $object->$name = $value;
-        }
-        return $object;
+        return $this->section;
     }
     
     /**
-     * Инициализация компонентов
-     *
-     * @return void
+     * Sets current \Hex\Base\Section object
      */
-    protected static function initComponents()
+    public function setSection(Section $section)
     {
-		// Подключение к базе данных
-        self::$db = Database::getInstance();
+        $this->section = $section;
+    }
 
-        // Инициализация кэша
-        Cache::getInstance();
 
-        // Определение языка
-        //self::$params = \Hex\Base\Language::getCurrentLanguage();
+    /**
+     * Returns the database connection component.
+     */
+    public function getDb()
+    {
+        return $this->get('db');
+    }
+
+    /**
+     * Returns the log dispatcher component.
+     */
+    public function getLog()
+    {
+        return $this->get('log');
+    }
+
+    /**
+     * Returns the error handler component.
+     */
+    public function getErrorHandler()
+    {
+        return $this->get('errorHandler');
+    }
+
+    /**
+     * Returns the cache component.
+     * Null if the component is not enabled.
+     */
+    public function getCache()
+    {
+        return $this->get('cache', false);
+    }
+
+    /**
+     * Returns the formatter component.
+     */
+    public function getFormatter()
+    {
+        return $this->get('formatter');
+    }
+
+    /**
+     * Returns the request component.
+     */
+    public function getRequest()
+    {
+        return $this->get('request');
+    }
+
+    /**
+     * Returns the router component.
+     */
+    public function getRouter()
+    {
+        return $this->get('router');
+    }
+
+    /**
+     * Returns the response component.
+     */
+    public function getResponse()
+    {
+        return $this->get('response');
+    }
+
+    /**
+     * Returns the view template object.
+     * Null is returned if is not configured.
+     */
+    public function getView()
+    {
+        return $this->get('view', true);
+    }
+
+    /**
+     * Returns the internationalization component
+     */
+    public function getTranslator()
+    {
+        return $this->get('translator');
+    }
+
+    /**
+     * Returns the mailer component.
+     */
+    public function getMailer()
+    {
+        return $this->get('mailer');
+    }
+
+    /**
+     * Returns the auth manager for this application.
+     * Null is returned if auth manager is not configured.
+     */
+    public function getAuthManager()
+    {
+        return $this->get('authManager', false);
+    }
+
+    /**
+     * Returns the asset manager.
+     */
+    public function getAssetManager()
+    {
+        return $this->get('assetManager');
+    }
+
+    /**
+     * Returns the security component.
+     */
+    public function getSecurity()
+    {
+        return $this->get('security');
+    }
+
+
+
+    /**
+     * Registers the errorHandler component as a PHP error handler.
+     * @param array $config application config
+     */
+    protected function registerErrorHandler(&$config)
+    {
+        if (ENABLE_ERROR_HANDLER) {
+            if (!isset($config['components']['errorHandler']['class'])) {
+                echo "Error: no errorHandler component is configured.\n";
+                exit(1);
+            }
+            $this->set('errorHandler', $config['components']['errorHandler']);
+            unset($config['components']['errorHandler']);
+            $this->getErrorHandler()->register();
+        }
     }
 
     /**
      * Возвращает контроллер по его идентификатору
      */
-    public static function createController($controller, $config = array())
+    public function createController($controller, $config = array())
     {
         $controllerName = Controller::getFullClassName($controller);
+
+        if (!class_exists($controllerName))
+            throw new InvalidRoute('Controller '.$controllerName.' is not found');
+            
         return new $controllerName($controller);
+    }
+
+    /**
+     * Возвращает результат работы блока MVC
+     */
+    public function getMVCResult($route, $params = array(), $useLayout = false)
+    {
+        list($controller, $action, $module) = Hex::$app->getRouter()->parseRoute($route);
+
+        if ($module === false) {
+            $controllerObject = $this->createController($controller);
+        } else {
+            $module = new Module($module);
+            $controllerObject = $module->createController($controller);
+        }
+
+        $result = $controllerObject->runAction($action, $params);
+
+        if ($result instanceof Response) {
+            return $result;
+        }
+        
+        if ($result === null)
+            $result = array();
+
+        if (is_array($result)) {
+            Hex::$app->getResponse()->data = $result;
+
+            if ($useLayout)
+                $result = $controllerObject->render($controller.'/'.$action, $result);
+            else
+                $result = $controllerObject->renderPartial($controller.'/'.$action, $result);
+        }
+
+        return $result;
     }
 
     /**
      * Задаёт маршрут приложению
      */
-    public static function route($route, $params = array())
+    public function route($route, $params = array())
     {
-        list($controller, $action) = self::$router->parseRoute($route);
+        $result = $this->getMVCResult($route, $params, true);
 
-        $controllerObject = self::createController($controller);
+        if (in_array(Hex::$app->getResponse()->format, [Response::FORMAT_RAW, Response::FORMAT_HTML])) {
+            ob_start(); 
+            echo $result;
+            Hex::$app->getResponse()->data = ob_get_clean();
+        } elseif (Hex::$app->getRequest()->getIsAjax()) {
+            ob_start(); 
+            echo $result;
+            Hex::$app->getResponse()->data['_content'] = ob_get_clean();
+        }
+    
+        return Hex::$app->getResponse();
+    }
+    
 
-        $result = $controllerObject->runAction($action, $params);
+    /**
+     * Выводит блок MVC
+     */
+    public function execute($route, $params = array())
+    {
+        $result = $this->getMVCResult($route, $params, false);
 
-        if ($result instanceof Response)
-            return $result;
-        else
-            Application::$response->content = $result;
+        if (in_array(Hex::$app->getResponse()->format, [Response::FORMAT_RAW, Response::FORMAT_HTML])) {
+            echo $result;
+        } elseif (Hex::$app->getRequest()->getIsAjax()) {
+            echo $result;
+        }
+    }
 
-        return Application::$response;
+    
+    /**
+     * Returns path to layouts directory 
+     */
+    public static function getLayoutsPath()
+    {
+        return 'layouts';
     }
 }
