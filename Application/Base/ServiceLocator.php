@@ -116,7 +116,7 @@ class ServiceLocator extends Object
             $definition = $this->_definitions[$id]; 
             if (is_object($definition)) { 
                 return $this->_components[$id] = $definition;
-            } else { 
+            } else {
                 return $this->_components[$id] = Hex::createObject($definition);
             }
         } elseif ($throwException) {

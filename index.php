@@ -6,13 +6,6 @@ include "init.php";
 
 Hex::$app->run();
 
-\Hex::error('Olololo');
-
-print_r(Hex::getLogger()->messages);
-
-
-
-
 
 
 

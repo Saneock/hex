@@ -22,6 +22,15 @@ class ComposerStaticInit655b006907dd84e189987416ba001529
         array (
             'cebe\\markdown\\' => 14,
         ),
+        'P' => 
+        array (
+            'Psr\\Log\\' => 8,
+            'PhpConsole\\' => 11,
+        ),
+        'M' => 
+        array (
+            'Monolog\\' => 8,
+        ),
         'E' => 
         array (
             'Exceptions\\' => 11,
@@ -48,6 +57,18 @@ class ComposerStaticInit655b006907dd84e189987416ba001529
         'cebe\\markdown\\' => 
         array (
             0 => __DIR__ . '/..' . '/cebe/markdown',
+        ),
+        'Psr\\Log\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/log/Psr/Log',
+        ),
+        'PhpConsole\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/php-console/php-console/src/PhpConsole',
+        ),
+        'Monolog\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
         ),
         'Exceptions\\' => 
         array (

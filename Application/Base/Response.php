@@ -318,10 +318,10 @@ class Response extends \Abstracts\Response
 
     /**
      * Посылает cookie клиенту
-     * @todo Решить попрос с Security
+     * @todo Решить вопрос с Security
      */
     protected function sendCookies()
-    {
+    { 
         if ($this->_cookies === null) {
             return;
         }

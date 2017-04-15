@@ -21,7 +21,7 @@ class __TwigTemplate_38bc716eecc5a82c72a24d1535e1f95f1651917e6615b8289dce950ec18
         echo "\"
 ";
         // line 2
-        echo $this->env->getExtension('Hex\Twig_Extensions\Execute')->execute("page/items", array("pageName" => "value"));
+        echo $this->env->getExtension('Hex\Twig_Extensions\Execute')->execute("page/items", array(0 => "value"));
         echo "
 <h1>Hello</h1>";
     }

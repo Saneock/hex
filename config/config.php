@@ -7,5 +7,8 @@ define('TIMEZONE', 'Europe/Chisinau'); // Часовой пояс
 
 $config = [
 	'components' => [
+		'request' => [
+			'cookieValidationKey' => 'DSFgksdifhiw899734hekfDFGisjdfi9374',
+		],
 	]
 ];

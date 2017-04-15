@@ -6,6 +6,7 @@ use Hex\Base\Object;
 use Hex\Base\Action;
 use Hex\Base\Application;
 use Hex\Base\View;
+use \Exceptions\IO\Filesystem\FileNotFoundException;
 
 /**
  * Основной класс контроллера
@@ -138,9 +139,7 @@ class ControllerCore extends Object
         if ($action === null) {
             throw new \Exception\InvalidRoute('Unable to resolve the request: ' . $this->getUniqueId() . '/' . $id);
         }
-
-        //Hex::trace('Route to run: ' . $action->getUniqueId(), __METHOD__);
-
+        
         if (Application::$requestedAction === null) {
             Application::$requestedAction = $action;
         }
@@ -294,6 +293,11 @@ class ControllerCore extends Object
         //$module = $this->module;
         if (is_string($this->layout)) {
             $layout = $this->layout;
+        }elseif (is_array($this->layout)) {
+            if (isset($this->layout[$this->action->name]))
+                $layout = $this->layout[$this->action->name];
+            elseif (isset($this->layout[0]))
+                $layout = $this->layout[0];
         }/* elseif ($this->layout === null) {
             while ($module !== null && $module->layout === null) {
                 $module = $module->module;
@@ -302,13 +306,13 @@ class ControllerCore extends Object
                 $layout = $module->layout;
             }
         }*/
-
+ 
         if (!isset($layout)) {
             return false;
         }
 
         $file = Hex::$app->getLayoutsPath() . DIRECTORY_SEPARATOR . $layout;
-        
+    
         if (pathinfo($file, PATHINFO_EXTENSION) !== '') {
             return $file;
         }
@@ -317,6 +321,9 @@ class ControllerCore extends Object
         if ($view::$templateExtension !== 'php' && !is_file(DIR_SECTION_TEMPLATES.'/'.$path)) {
             $path = $file . '.php';
         }
+
+        if (!file_exists(DIR_SECTION_TEMPLATES.'/'.$path)) 
+            throw new FileNotFoundException(DIR_SECTION_TEMPLATES.'/'.$path);
 
         return $path;
     }

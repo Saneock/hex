@@ -58,7 +58,7 @@ class ActionCore extends Object
     {
         $args = $this->controller->bindActionParams($this, $params);
 
-        Hex::trace('Running action [' . $this->controller->name . '::' . $this->name . ', ' . Controller::getFullClassName($this->controller->name) . '::' . $this->actionMethod . '()] with params: '.json_encode($args));
+        Hex::$app->getLogger()->info('Running action [' . $this->controller->name . '::' . $this->name . ', ' . Controller::getFullClassName($this->controller->name) . '::' . $this->actionMethod . '()] with params: '.json_encode($args));
 
         if (Application::$requestedParams === null) {
             Application::$requestedParams = $args;

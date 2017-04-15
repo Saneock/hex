@@ -94,7 +94,7 @@ class Object implements \Hex\Interfaces\Configurable
      * @param array $config name-value pairs that will be used to initialize the object properties
      */
     public function __construct($config = [])
-    {
+    { 
         if (!empty($config)) {
             Hex::configure($this, $config);
         }

@@ -100,16 +100,18 @@ class ApplicationCore extends Module
             'request' => ['class' => 'Hex\Base\Request'],
             'response' => ['class' => 'Hex\Base\Response'],
             'router' => ['class' => 'Hex\Base\Router'],
-            'session' => ['class' => 'yii\web\Session'],
-            'errorHandler' => ['class' => 'yii\web\ErrorHandler'],
-            'log' => ['class' => 'yii\log\Dispatcher'],
+            'session' => ['class' => 'Hex\Base\Session'],
+            'errorHandler' => ['class' => 'Hex\Base\ErrorHandler'],
             'view' => ['class' => 'Hex\Base\View'],
-            //'formatter' => ['class' => 'yii\i18n\Formatter'],
-            //'i18n' => ['class' => 'yii\i18n\I18N'],
             'mailer' => ['class' => 'yii\swiftmailer\Mailer'],
-            //'urlManager' => ['class' => 'yii\web\UrlManager'],
             //'assetManager' => ['class' => 'yii\web\AssetManager'],
             'security' => ['class' => 'yii\base\Security'],
+            'logger' => Hex::createObject('Hex\Log\Logger', [[
+                'dispatchers' => [
+                    new \Monolog\Handler\StreamHandler(__DIR__.'/my_app.log', \Monolog\Logger::WARNING),
+                    (DEBUG ? new \Monolog\Handler\PHPConsoleHandler(['password' => '7567']) : null)
+                ]
+            ]]),
         ];
     }
 
@@ -208,11 +210,11 @@ class ApplicationCore extends Module
     }
 
     /**
-     * Returns the log dispatcher component.
+     * Returns the logger component.
      */
-    public function getLog()
+    public function getLogger()
     {
-        return $this->get('log');
+        return $this->get('logger');
     }
 
     /**
@@ -386,6 +388,8 @@ class ApplicationCore extends Module
      */
     public function route($route, $params = array())
     {
+        Hex::$app->getLogger()->info('Route to ['.$route.'] with params: '.json_encode($params));
+
         $result = $this->getMVCResult($route, $params, true);
 
         if (in_array(Hex::$app->getResponse()->format, [Response::FORMAT_RAW, Response::FORMAT_HTML])) {
@@ -407,6 +411,8 @@ class ApplicationCore extends Module
      */
     public function execute($route, $params = array())
     {
+        Hex::$app->getLogger()->info('Execute MCV ['.$route.'] with params: '.json_encode($params));
+
         $result = $this->getMVCResult($route, $params, false);
 
         if (in_array(Hex::$app->getResponse()->format, [Response::FORMAT_RAW, Response::FORMAT_HTML])) {

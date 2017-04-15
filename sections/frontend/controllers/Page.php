@@ -10,11 +10,11 @@ class Page extends Controller
 
 	public function actionIndex()
 	{
-		return ['page' => 'index'];
 		return $this->render('page/index', ['page' => 'index2']);
 	}
 
 	public function actionItems($pageName = null)
 	{
+		//\PC::debug([$pageName]);
 	}
 }

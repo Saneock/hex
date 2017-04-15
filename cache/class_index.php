@@ -239,6 +239,14 @@
     'type' => 'class',
     'override' => false,
   ),
+  'Hex\\Base\\ErrorHandler' => 
+  array (
+    'class' => 'ErrorHandler',
+    'namespace' => 'Hex\\Base',
+    'path' => 'Application/Base/ErrorHandler.php',
+    'type' => 'class',
+    'override' => false,
+  ),
   'Hex\\Base\\HeaderCollection' => 
   array (
     'class' => 'HeaderCollection',
@@ -319,6 +327,22 @@
     'type' => 'class',
     'override' => false,
   ),
+  'Hex\\Base\\Session' => 
+  array (
+    'class' => 'Session',
+    'namespace' => 'Hex\\Base',
+    'path' => 'Application/Base/Session.php',
+    'type' => 'class',
+    'override' => false,
+  ),
+  'Hex\\Base\\SessionIterator' => 
+  array (
+    'class' => 'SessionIterator',
+    'namespace' => 'Hex\\Base',
+    'path' => 'Application/Base/SessionIterator.php',
+    'type' => 'class',
+    'override' => false,
+  ),
   'Hex\\Base\\Settings' => 
   array (
     'class' => 'Settings',
@@ -357,14 +381,6 @@
     'namespace' => 'Hex\\Interfaces',
     'path' => 'Application/Interfaces/Configurable.php',
     'type' => 'interface',
-    'override' => false,
-  ),
-  'Hex\\Log\\Dispatcher' => 
-  array (
-    'class' => 'Dispatcher',
-    'namespace' => 'Hex\\Log',
-    'path' => 'Application/Log/Dispatcher.php',
-    'type' => 'class',
     'override' => false,
   ),
   'Hex\\Log\\Logger' => 
