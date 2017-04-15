@@ -5,6 +5,6 @@ class Database extends DatabaseCore
 {
 	public static function query($sql_query, $variables = false)
 	{
-		echo "Hurray!52555";
+		echo "Hurray!1";
 	}
 }
