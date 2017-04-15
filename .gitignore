@@ -11,6 +11,5 @@
 .idea/
 .vscode/
 vendor/
-config/
-overrides/
-overrides/
+config/*
+overrides/*
