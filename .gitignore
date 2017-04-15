@@ -10,5 +10,5 @@
 # -- Files
 
 # -- Directories
-/config/
-/overrides/
+/config/*
+/overrides/*
