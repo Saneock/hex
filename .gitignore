@@ -12,3 +12,4 @@
 # -- Directories
 /config/*
 /overrides/*
+/overrides/
